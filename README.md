@@ -5,8 +5,7 @@ Supabase-Backend.
 
 ## Features (Stand)
 
-- **Supabase Auth** (Email/Passwort, Single User) mit RLS-geschütztem Backend
-- **Login-Screen**
+- **Kein Login** – RLS ist deaktiviert, der Anon-Key greift direkt
 - **Haupt-Navigation**: Tagesplan · Wochenplan · Backlog · Projekte
   (NavigationRail auf breiten Screens, NavigationBar auf schmalen)
 - **Tagesplan**: Tasks für heute (`planned_day = today`) + offene Next Actions
@@ -27,11 +26,9 @@ lib/
     task.dart               # Task-Model (tasks-Tabelle)
     project.dart            # Project-Model (projects-Tabelle)
   services/
-    auth_service.dart       # Supabase Auth Wrapper
     task_service.dart       # Queries auf tasks
     project_service.dart    # Queries auf projects
   screens/
-    login_screen.dart
     home_shell.dart         # Navigation
     tagesplan_screen.dart
     wochenplan_screen.dart
@@ -91,10 +88,41 @@ flutter run -d chrome \
 
 - Supabase-Projekt: `vnfkkujtkbgkqafbbipj` (eu-central-1)
 - Tabellen: `tasks`, `projects`, `ideen`, `sport_log`, `profile`
-- RLS ist aktiv → Zugriff nur nach Login (Supabase Auth)
+- RLS ist **deaktiviert** → die App greift direkt mit dem Anon-Key zu (kein Login)
 
-### Hinweis zu Auth
+## CI/CD (GitHub Actions)
 
-Single-User: Der Benutzer muss einmalig im Supabase Dashboard
-(*Authentication → Users*) angelegt werden (oder via Sign-up, falls aktiviert).
-Danach Login über E-Mail/Passwort im Login-Screen.
+In `.github/workflows/`:
+
+| Workflow | Trigger | Zweck |
+|----------|---------|-------|
+| `automerge.yml` | Push auf `claude/**` | Merged den Branch automatisch nach `main` |
+| `build-android.yml` | Push auf `main`, manuell | Baut `app-release.apk` (Artifact) |
+| `build-web.yml` | Push auf `main`, manuell | Baut die Web-App (`build/web` als Artifact) |
+
+Die Build-Workflows erzeugen die Plattform-Scaffolds zur Laufzeit via
+`flutter create`, da `android/` nicht eingecheckt ist.
+
+## Web-App via Docker deployen
+
+`Dockerfile` (Multi-Stage: Flutter-Build → nginx) und `nginx.conf` liegen im
+Repo-Root.
+
+```bash
+# Image bauen
+docker build -t todo-coaching-web .
+
+# Container starten → http://localhost:8080
+docker run -d -p 8080:80 --name todo-web todo-coaching-web
+```
+
+Oder via Compose:
+
+```bash
+docker compose up -d --build
+```
+
+Der erste Build dauert etwas (Flutter-Toolchain im Image). Das fertige Image
+enthält nur die statischen Web-Assets hinter nginx (klein & schnell). nginx ist
+für SPA-Routing konfiguriert (`try_files … /index.html`).
+

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../services/auth_service.dart';
 import 'backlog_screen.dart';
 import 'projekte_screen.dart';
 import 'tagesplan_screen.dart';
@@ -45,23 +44,12 @@ class _HomeShellState extends State<HomeShell> {
         label: 'Projekte'),
   ];
 
-  Future<void> _logout() async {
-    await AuthService().signOut();
-  }
-
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 720;
 
     final appBar = AppBar(
       title: Text(_titles[_index]),
-      actions: [
-        IconButton(
-          tooltip: 'Abmelden',
-          icon: const Icon(Icons.logout),
-          onPressed: _logout,
-        ),
-      ],
     );
 
     final body = IndexedStack(index: _index, children: _screens);
