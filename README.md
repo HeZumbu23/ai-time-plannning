@@ -55,33 +55,41 @@ flutter create --platforms=web,android --org de.kerch .
 flutter pub get
 ```
 
+## Konfiguration (Anon-Key)
+
+Der Anon-Key wird **nicht eingecheckt**, sondern beim Build per `--dart-define`
+injiziert (`lib/config/supabase_config.dart` liest ihn via
+`String.fromEnvironment`). Die Projekt-URL hat einen Default, der Key nicht –
+ohne Key zeigt die App einen Hinweis-Screen.
+
+Bezugsquellen je nach Umgebung:
+- **Lokal**: `--dart-define` beim `flutter run`/`build`
+- **CI**: GitHub-Secret `SUPABASE_ANON_KEY` (Repo → Settings → Secrets → Actions)
+- **Docker**: build-arg `SUPABASE_ANON_KEY`
+
 ## Starten
 
 ```bash
 # Web
-flutter run -d chrome
+flutter run -d chrome --dart-define=SUPABASE_ANON_KEY=<key>
 
 # Android (Gerät/Emulator angeschlossen)
-flutter run -d <device-id>
+flutter run -d <device-id> --dart-define=SUPABASE_ANON_KEY=<key>
 ```
+
+Bequemer für lokal: eine **gitignorierte** `dart_defines.json` anlegen …
+
+```json
+{ "SUPABASE_ANON_KEY": "<key>" }
+```
+
+… und damit starten: `flutter run --dart-define-from-file=dart_defines.json`
 
 ## Build
 
 ```bash
-flutter build web        # Output: build/web/
-flutter build apk        # Output: build/app/outputs/flutter-apk/
-```
-
-## Konfiguration
-
-URL und Anon-Key stehen in `lib/config/supabase_config.dart`. Der Anon-Key ist
-ein öffentlicher Client-Key (Schutz erfolgt über RLS). Für abweichende
-Umgebungen kann man ihn beim Start überschreiben:
-
-```bash
-flutter run -d chrome \
-  --dart-define=SUPABASE_URL=https://... \
-  --dart-define=SUPABASE_ANON_KEY=...
+flutter build web --release --dart-define=SUPABASE_ANON_KEY=<key>
+flutter build apk --release --dart-define=SUPABASE_ANON_KEY=<key>
 ```
 
 ## Backend
@@ -109,16 +117,17 @@ Die Build-Workflows erzeugen die Plattform-Scaffolds zur Laufzeit via
 Repo-Root.
 
 ```bash
-# Image bauen
-docker build -t todo-coaching-web .
+# Image bauen (Anon-Key als build-arg, landet nicht im Repo)
+docker build --build-arg SUPABASE_ANON_KEY=<key> -t todo-coaching-web .
 
 # Container starten → http://localhost:8080
 docker run -d -p 8080:80 --name todo-web todo-coaching-web
 ```
 
-Oder via Compose:
+Oder via Compose (Key aus Umgebung bzw. `.env`):
 
 ```bash
+export SUPABASE_ANON_KEY=<key>      # oder in .env (gitignoriert)
 docker compose up -d --build
 ```
 

@@ -1,21 +1,27 @@
 /// Supabase-Verbindungsdaten.
 ///
-/// Der Anon-/Publishable-Key ist ein öffentlicher Client-Key und darf im
-/// Frontend liegen — der eigentliche Schutz kommt aus den RLS-Policies.
+/// Der Anon-/Publishable-Key wird **nicht** im Code eingecheckt, sondern beim
+/// Build per `--dart-define` (bzw. CI-Secret / Docker build-arg) injiziert:
 ///
-/// Für Builds kann der Key auch via `--dart-define` überschrieben werden:
-///   flutter run --dart-define=SUPABASE_ANON_KEY=...
+///   flutter run -d chrome --dart-define=SUPABASE_ANON_KEY=...
+///
+/// Alternativ gebündelt aus einer (gitignorierten) Datei:
+///   flutter run --dart-define-from-file=dart_defines.json
+///
+/// Hinweis: In einer Client-App landet der Key am Ende ohnehin sichtbar im
+/// ausgelieferten Bundle – der eigentliche Schutz muss über RLS kommen.
+/// Das Auslagern hier verhindert nur, dass der Key im Git-Repo liegt.
 class SupabaseConfig {
   SupabaseConfig._();
 
+  /// Die Projekt-URL ist nicht geheim und darf einen Default haben.
   static const String url = String.fromEnvironment(
     'SUPABASE_URL',
     defaultValue: 'https://vnfkkujtkbgkqafbbipj.supabase.co',
   );
 
-  static const String anonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZuZmtrdWp0a2Jna3FhZmJiaXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MTE2NzMsImV4cCI6MjA5NzA4NzY3M30.gQpRg1glkR4EKxqYgXT1yvEhpwkPlF-bLctfvH4s6IQ',
-  );
+  /// Kein Default – muss zur Build-Zeit gesetzt werden.
+  static const String anonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  static bool get isConfigured => url.isNotEmpty && anonKey.isNotEmpty;
 }

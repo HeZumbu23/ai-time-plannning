@@ -3,6 +3,9 @@ FROM ghcr.io/cirruslabs/flutter:stable AS build
 
 WORKDIR /app
 
+# Anon-Key wird zur Build-Zeit injiziert, nicht ins Image-Layer geschrieben
+ARG SUPABASE_ANON_KEY
+
 # Git-Sicherheitscheck im Container abschalten
 RUN git config --global --add safe.directory /app
 
@@ -13,7 +16,8 @@ COPY . .
 # Web-Scaffold ergänzen, Dependencies holen, Release-Build
 RUN flutter create --platforms=web . \
  && flutter pub get \
- && flutter build web --release
+ && flutter build web --release \
+      --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
 
 # ---- Runtime-Stage: statisch via nginx ausliefern ----
 FROM nginx:alpine

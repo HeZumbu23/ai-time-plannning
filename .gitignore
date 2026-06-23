@@ -29,5 +29,6 @@ web/.dart_tool/
 # macOS
 .DS_Store
 
-# Local secrets (override via --dart-define instead)
+# Local secrets / build-time defines (NICHT einchecken)
 .env
+dart_defines.json
