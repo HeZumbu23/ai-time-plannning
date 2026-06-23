@@ -1,6 +1,10 @@
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        # Aus der Umgebung / .env-Datei (nicht eingecheckt) ziehen
+        SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
     image: todo-coaching-web
     ports:
       - "8080:80"
