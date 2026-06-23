@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write   # für das Anlegen von Releases
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,16 +30,55 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      # build-number = Lauf-Nummer -> steigender versionCode (nötig für Updates)
       - name: Build APK (release)
         env:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           flutter build apk --release \
+            --build-number=${{ github.run_number }} \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
 
-      - name: Upload APK
+      # Stabile Signatur: ohne Keystore-Secret bleibt es debug-signiert (Warnung).
+      - name: Sign APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -e
+          IN=build/app/outputs/flutter-apk/app-release.apk
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::Kein ANDROID_KEYSTORE_BASE64 gesetzt – APK ist nur debug-signiert. Obtainium-Updates brechen, sobald sich die Signatur ändert."
+            cp "$IN" app-release.apk
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+          BUILD_TOOLS=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/* | sort -V | tail -n1)
+          "$BUILD_TOOLS/zipalign" -p -f 4 "$IN" aligned.apk
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks keystore.jks \
+            --ks-pass env:KEYSTORE_PASSWORD \
+            --ks-key-alias "$KEY_ALIAS" \
+            --key-pass env:KEY_PASSWORD \
+            --out app-release.apk aligned.apk
+          "$BUILD_TOOLS/apksigner" verify --print-certs app-release.apk
+          rm -f keystore.jks aligned.apk
+
+      # Release veröffentlichen -> von Obtainium konsumierbar
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.0.${{ github.run_number }}
+          name: TODO-App Build ${{ github.run_number }}
+          files: app-release.apk
+          fail_on_unmatched_files: true
+
+      # Zusätzlich als Workflow-Artifact (z.B. zum manuellen Download)
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: app-release.apk
           if-no-files-found: error
