@@ -1,0 +1,38 @@
+name: Auto-merge claude branches
+
+# Mergt Pushes auf claude/**-Branches automatisch nach main.
+on:
+  push:
+    branches:
+      - 'claude/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automerge-main
+  cancel-in-progress: false
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge ${{ github.ref_name }} into main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          if git merge --no-ff "$GITHUB_SHA" \
+              -m "Auto-merge ${GITHUB_REF_NAME} into main"; then
+            git push origin main
+            echo "✅ ${GITHUB_REF_NAME} nach main gemergt."
+          else
+            echo "::error::Merge-Konflikt – manueller Merge nötig."
+            git merge --abort
+            exit 1
+          fi
