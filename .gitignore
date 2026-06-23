@@ -1,0 +1,33 @@
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+.pub-cache/
+.pub/
+pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/debug
+android/app/profile
+android/app/release
+*.keystore
+*.jks
+
+# Web
+web/.dart_tool/
+
+# macOS
+.DS_Store
+
+# Local secrets (override via --dart-define instead)
+.env
