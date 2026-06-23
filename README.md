@@ -105,11 +105,54 @@ In `.github/workflows/`:
 | Workflow | Trigger | Zweck |
 |----------|---------|-------|
 | `automerge.yml` | Push auf `claude/**` | Merged den Branch automatisch nach `main` |
-| `build-android.yml` | Push auf `main`, manuell | Baut `app-release.apk` (Artifact) |
+| `build-android.yml` | Push auf `main`, manuell | Baut die APK, **veröffentlicht ein GitHub-Release** + Artifact |
 | `build-web.yml` | Push auf `main`, manuell | Baut die Web-App (`build/web` als Artifact) |
 
 Die Build-Workflows erzeugen die Plattform-Scaffolds zur Laufzeit via
 `flutter create`, da `android/` nicht eingecheckt ist.
+
+## Android-App via Obtainium installieren
+
+`build-android.yml` legt bei jedem `main`-Build ein **GitHub-Release** mit der
+APK an. [Obtainium](https://github.com/ImranR98/Obtainium) kann das direkt
+abonnieren und automatisch updaten:
+
+1. Obtainium → **Add App**
+2. Source-URL: `https://github.com/HeZumbu23/ai-time-plannning`
+3. Obtainium erkennt die Releases und die `app-release.apk` automatisch.
+
+> Workflow-**Artifacts** (der „Download"-Button im Actions-Tab) funktionieren
+> für Obtainium **nicht** – die sind gezippt, brauchen Login und verfallen.
+> Deshalb der Umweg über Releases.
+
+### Stabile Signatur (für Obtainium-Updates erforderlich)
+
+Ohne eigenen Signaturschlüssel signiert jeder CI-Lauf mit einem *neuen*
+Debug-Key → Android lehnt das Update mit „Signaturkonflikt" ab. Einmalig einen
+festen Keystore erzeugen und als Secrets hinterlegen:
+
+```bash
+# 1. Keystore erzeugen
+keytool -genkey -v -keystore upload.jks -keyalg RSA -keysize 2048 \
+  -validity 10000 -alias upload
+
+# 2. Base64 für das GitHub-Secret
+base64 -w0 upload.jks   # (macOS: base64 -i upload.jks)
+```
+
+Dann unter *Repo → Settings → Secrets and variables → Actions* anlegen:
+
+| Secret | Wert |
+|--------|------|
+| `ANDROID_KEYSTORE_BASE64` | Base64-String aus Schritt 2 |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore-Passwort |
+| `ANDROID_KEY_ALIAS` | `upload` |
+| `ANDROID_KEY_PASSWORD` | Key-Passwort (oft = Keystore-Passwort) |
+
+⚠️ **Den `upload.jks` sicher aufbewahren** und **nicht** ins Repo committen –
+geht er verloren, kannst du bestehende Installationen nicht mehr updaten.
+Solange die Secrets fehlen, baut der Workflow trotzdem (debug-signiert, mit
+Warnung) – nur Auto-Updates über Obtainium klappen dann nicht.
 
 ## Web-App via Docker deployen
 
