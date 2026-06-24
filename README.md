@@ -21,7 +21,10 @@ Supabase-Backend.
 lib/
   main.dart                 # App-Einstieg, Supabase.initialize, AuthGate
   config/
-    supabase_config.dart    # URL + Anon-Key (per --dart-define überschreibbar)
+    supabase_config.dart    # Build-Defaults (per --dart-define überschreibbar)
+    app_config.dart         # Laufzeit-Key (QR/Settings) > Build-Default
+  screens/
+    config_qr_screen.dart   # QR-Scanner + manuelle Eingabe der Verbindungsdaten
   models/
     task.dart               # Task-Model (tasks-Tabelle)
     project.dart            # Project-Model (projects-Tabelle)
@@ -57,15 +60,36 @@ flutter pub get
 
 ## Konfiguration (Anon-Key)
 
-Der Anon-Key wird **nicht eingecheckt**, sondern beim Build per `--dart-define`
-injiziert (`lib/config/supabase_config.dart` liest ihn via
-`String.fromEnvironment`). Die Projekt-URL hat einen Default, der Key nicht –
-ohne Key zeigt die App einen Hinweis-Screen.
+Der Anon-Key kann auf **zwei** Wegen in die App kommen:
+
+1. **Per QR-Code zur Laufzeit (empfohlen fürs Handy, kein Build-Secret nötig).**
+   Damit darf das Repo problemlos **public** sein – der Key steckt nicht im
+   Build, sondern wird auf dem Gerät gespeichert.
+   - QR am PC erzeugen:
+     ```bash
+     pip install "qrcode[pil]"
+     python tools/make_config_qr.py --url https://xxxx.supabase.co --key eyJhbGciOi...
+     # -> config_qr.png  (oder --ascii fürs Terminal)
+     ```
+   - In der App scannen: **Setup-Screen beim ersten Start** oder später über das
+     **Zahnrad** oben rechts → *„QR-Code scannen"*. Alternativ dort manuell
+     einfügen (Tastatur-Symbol).
+   - Gespeichert wird via `shared_preferences`; `lib/config/app_config.dart`
+     löst den effektiven Key auf (gespeicherter Wert > Build-Default).
+
+2. **Per `--dart-define` zur Build-Zeit** (weiterhin als Fallback/Default,
+   z.B. für die Web-App). `lib/config/supabase_config.dart` liest ihn via
+   `String.fromEnvironment`. Ohne *irgendeinen* Key zeigt die App den
+   Einrichtungs-Screen.
 
 Bezugsquellen je nach Umgebung:
+- **Handy/Android**: QR-Code scannen (kein Secret im Build erforderlich)
 - **Lokal**: `--dart-define` beim `flutter run`/`build`
 - **CI**: GitHub-Secret `SUPABASE_ANON_KEY` (Repo → Settings → Secrets → Actions)
 - **Docker**: build-arg `SUPABASE_ANON_KEY`
+
+> Das per QR übertragene JSON hat die Form
+> `{"supabaseUrl": "https://xxxx.supabase.co", "supabaseAnonKey": "eyJ..."}`.
 
 ## Starten
 
@@ -121,8 +145,12 @@ abonnieren und automatisch updaten:
 2. Source-URL: `https://github.com/HeZumbu23/ai-time-plannning`
 3. Obtainium erkennt die Releases und die `app-release.apk` automatisch.
 
-> **Privates Repo:** Da das Repo `private` ist, liefert GitHub ohne
-> Authentifizierung **404**. In Obtainium einmalig ein GitHub-Token
+> **Public Repo (empfohlen):** Ist das Repo öffentlich, funktioniert Obtainium
+> **ohne Token** – kein 404. Da der Anon-Key dank QR-Einrichtung nicht mehr im
+> Code/Build liegt, ist das unproblematisch.
+>
+> **Privates Repo:** Falls das Repo `private` bleibt, liefert GitHub ohne
+> Authentifizierung **404**. Dann in Obtainium einmalig ein GitHub-Token
 > hinterlegen: *Obtainium → Settings → Source-specific → GitHub →
 > Personal Access Token*. Ein **fine-grained PAT** mit nur
 > *Contents: Read-only* auf genau dieses Repo reicht

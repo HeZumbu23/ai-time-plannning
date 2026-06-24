@@ -34,6 +34,17 @@ jobs:
       - name: Generate Android scaffold
         run: flutter create --platforms=android --org de.kerch .
 
+      # mobile_scanner braucht die Kamera-Permission. Da das Scaffold bei
+      # jedem Build neu erzeugt wird, hier idempotent in das Manifest patchen.
+      - name: Add CAMERA permission to manifest
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          if ! grep -q 'android.permission.CAMERA' "$MANIFEST"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <application#' "$MANIFEST"
+            echo "CAMERA-Permission ergänzt."
+          fi
+          grep -n 'CAMERA' "$MANIFEST" || true
+
       - name: Pub get
         run: flutter pub get
 
