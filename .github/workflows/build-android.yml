@@ -4,12 +4,19 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Auto-Merge pusht mit GITHUB_TOKEN -> löst kein push-Event aus.
+  # Daher nach Abschluss des Auto-Merge-Workflows triggern.
+  workflow_run:
+    workflows: ["Auto-merge claude branches"]
+    types: [completed]
 
 permissions:
   contents: write   # für das Anlegen von Releases
 
 jobs:
   build:
+    # Bei workflow_run nur bauen, wenn der Auto-Merge erfolgreich war.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

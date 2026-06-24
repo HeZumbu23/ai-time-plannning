@@ -121,6 +121,13 @@ abonnieren und automatisch updaten:
 2. Source-URL: `https://github.com/HeZumbu23/ai-time-plannning`
 3. Obtainium erkennt die Releases und die `app-release.apk` automatisch.
 
+> **Privates Repo:** Da das Repo `private` ist, liefert GitHub ohne
+> Authentifizierung **404**. In Obtainium einmalig ein GitHub-Token
+> hinterlegen: *Obtainium → Settings → Source-specific → GitHub →
+> Personal Access Token*. Ein **fine-grained PAT** mit nur
+> *Contents: Read-only* auf genau dieses Repo reicht
+> (github.com → Settings → Developer settings → Fine-grained tokens).
+
 > Workflow-**Artifacts** (der „Download"-Button im Actions-Tab) funktionieren
 > für Obtainium **nicht** – die sind gezippt, brauchen Login und verfallen.
 > Deshalb der Umweg über Releases.
