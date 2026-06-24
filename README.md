@@ -19,12 +19,9 @@ Supabase-Backend.
 
 ```
 lib/
-  main.dart                 # App-Einstieg, Supabase.initialize, AuthGate
+  main.dart                 # App-Einstieg, Supabase.initialize
   config/
-    supabase_config.dart    # Build-Defaults (per --dart-define überschreibbar)
-    app_config.dart         # Laufzeit-Key (QR/Settings) > Build-Default
-  screens/
-    config_qr_screen.dart   # QR-Scanner + manuelle Eingabe der Verbindungsdaten
+    supabase_config.dart    # URL + Publishable Key (per --dart-define gesetzt)
   models/
     task.dart               # Task-Model (tasks-Tabelle)
     project.dart            # Project-Model (projects-Tabelle)
@@ -58,53 +55,37 @@ flutter create --platforms=web,android --org de.kerch .
 flutter pub get
 ```
 
-## Konfiguration (Anon-Key)
+## Konfiguration (Publishable Key)
 
-Der Anon-Key kann auf **zwei** Wegen in die App kommen:
+Die App nutzt den **Publishable Key** (`sb_publishable_…`, Nachfolger des
+anon-Keys). Er ist **nicht geheim** – er landet ohnehin sichtbar im Web-Bundle
+bzw. in der APK. Der eigentliche Schutz käme über RLS (aktuell deaktiviert).
 
-1. **Per QR-Code zur Laufzeit (empfohlen fürs Handy, kein Build-Secret nötig).**
-   Damit darf das Repo problemlos **public** sein – der Key steckt nicht im
-   Build, sondern wird auf dem Gerät gespeichert.
-   - QR am PC erzeugen:
-     ```bash
-     pip install "qrcode[pil]"
-     python tools/make_config_qr.py --url https://xxxx.supabase.co --key eyJhbGciOi...
-     # -> config_qr.png  (oder --ascii fürs Terminal)
-     ```
-   - In der App scannen: **Setup-Screen beim ersten Start** oder später über das
-     **Zahnrad** oben rechts → *„QR-Code scannen"*. Alternativ dort manuell
-     einfügen (Tastatur-Symbol).
-   - Gespeichert wird via `shared_preferences`; `lib/config/app_config.dart`
-     löst den effektiven Key auf (gespeicherter Wert > Build-Default).
-
-2. **Per `--dart-define` zur Build-Zeit** (weiterhin als Fallback/Default,
-   z.B. für die Web-App). `lib/config/supabase_config.dart` liest ihn via
-   `String.fromEnvironment`. Ohne *irgendeinen* Key zeigt die App den
-   Einrichtungs-Screen.
+Der Key wird **zur Build-Zeit** per `--dart-define=SUPABASE_PUBLISHABLE_KEY`
+in App **und** Web gebacken (`lib/config/supabase_config.dart` liest ihn via
+`String.fromEnvironment`). Ohne Key zeigt die App einen Hinweis-Screen.
 
 Bezugsquellen je nach Umgebung:
-- **Handy/Android**: QR-Code scannen (kein Secret im Build erforderlich)
+- **CI (Web + Android)**: Repository-**Variable** `SUPABASE_PUBLISHABLE_KEY`
+  (Repo → Settings → Secrets and variables → Actions → Tab **Variables**).
+  Eine *Variable* (kein Secret), weil der Wert nicht geheim ist.
 - **Lokal**: `--dart-define` beim `flutter run`/`build`
-- **CI**: GitHub-Secret `SUPABASE_ANON_KEY` (Repo → Settings → Secrets → Actions)
-- **Docker**: build-arg `SUPABASE_ANON_KEY`
-
-> Das per QR übertragene JSON hat die Form
-> `{"supabaseUrl": "https://xxxx.supabase.co", "supabaseAnonKey": "eyJ..."}`.
+- **Docker**: build-arg `SUPABASE_PUBLISHABLE_KEY`
 
 ## Starten
 
 ```bash
 # Web
-flutter run -d chrome --dart-define=SUPABASE_ANON_KEY=<key>
+flutter run -d chrome --dart-define=SUPABASE_PUBLISHABLE_KEY=<key>
 
 # Android (Gerät/Emulator angeschlossen)
-flutter run -d <device-id> --dart-define=SUPABASE_ANON_KEY=<key>
+flutter run -d <device-id> --dart-define=SUPABASE_PUBLISHABLE_KEY=<key>
 ```
 
 Bequemer für lokal: eine **gitignorierte** `dart_defines.json` anlegen …
 
 ```json
-{ "SUPABASE_ANON_KEY": "<key>" }
+{ "SUPABASE_PUBLISHABLE_KEY": "<key>" }
 ```
 
 … und damit starten: `flutter run --dart-define-from-file=dart_defines.json`
@@ -112,15 +93,15 @@ Bequemer für lokal: eine **gitignorierte** `dart_defines.json` anlegen …
 ## Build
 
 ```bash
-flutter build web --release --dart-define=SUPABASE_ANON_KEY=<key>
-flutter build apk --release --dart-define=SUPABASE_ANON_KEY=<key>
+flutter build web --release --dart-define=SUPABASE_PUBLISHABLE_KEY=<key>
+flutter build apk --release --dart-define=SUPABASE_PUBLISHABLE_KEY=<key>
 ```
 
 ## Backend
 
 - Supabase-Projekt: `vnfkkujtkbgkqafbbipj` (eu-central-1)
 - Tabellen: `tasks`, `projects`, `ideen`, `sport_log`, `profile`
-- RLS ist **deaktiviert** → die App greift direkt mit dem Anon-Key zu (kein Login)
+- RLS ist **deaktiviert** → die App greift direkt mit dem Publishable Key zu (kein Login)
 
 ## CI/CD (GitHub Actions)
 
@@ -195,8 +176,8 @@ Warnung) – nur Auto-Updates über Obtainium klappen dann nicht.
 Repo-Root.
 
 ```bash
-# Image bauen (Anon-Key als build-arg, landet nicht im Repo)
-docker build --build-arg SUPABASE_ANON_KEY=<key> -t todo-coaching-web .
+# Image bauen (Publishable Key als build-arg)
+docker build --build-arg SUPABASE_PUBLISHABLE_KEY=<key> -t todo-coaching-web .
 
 # Container starten → http://localhost:8080
 docker run -d -p 8080:80 --name todo-web todo-coaching-web
@@ -205,7 +186,7 @@ docker run -d -p 8080:80 --name todo-web todo-coaching-web
 Oder via Compose (Key aus Umgebung bzw. `.env`):
 
 ```bash
-export SUPABASE_ANON_KEY=<key>      # oder in .env (gitignoriert)
+export SUPABASE_PUBLISHABLE_KEY=<key>      # oder in .env (gitignoriert)
 docker compose up -d --build
 ```
 

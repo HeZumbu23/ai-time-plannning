@@ -34,27 +34,18 @@ jobs:
       - name: Generate Android scaffold
         run: flutter create --platforms=android --org de.kerch .
 
-      # mobile_scanner braucht die Kamera-Permission. Da das Scaffold bei
-      # jedem Build neu erzeugt wird, hier idempotent in das Manifest patchen.
-      - name: Add CAMERA permission to manifest
-        run: |
-          MANIFEST=android/app/src/main/AndroidManifest.xml
-          if ! grep -q 'android.permission.CAMERA' "$MANIFEST"; then
-            sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <application#' "$MANIFEST"
-            echo "CAMERA-Permission ergänzt."
-          fi
-          grep -n 'CAMERA' "$MANIFEST" || true
-
       - name: Pub get
         run: flutter pub get
 
       # build-number = Lauf-Nummer -> steigender versionCode (nötig für Updates)
-      # Kein --dart-define: Der Key kommt auf dem Handy per QR-Code (AppConfig),
-      # nicht aus dem Build. So liegt er nicht in der (public) APK.
+      # Publishable Key wird in die APK gebacken (ist nicht geheim).
       - name: Build APK (release)
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
         run: |
           flutter build apk --release \
-            --build-number=${{ github.run_number }}
+            --build-number=${{ github.run_number }} \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
 
       # Stabile Signatur: ohne Keystore-Secret bleibt es debug-signiert (Warnung).
       - name: Sign APK

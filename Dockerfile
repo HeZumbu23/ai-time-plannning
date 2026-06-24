@@ -3,8 +3,9 @@ FROM ghcr.io/cirruslabs/flutter:stable AS build
 
 WORKDIR /app
 
-# Anon-Key wird zur Build-Zeit injiziert, nicht ins Image-Layer geschrieben
-ARG SUPABASE_ANON_KEY
+# Publishable Key wird zur Build-Zeit injiziert (nicht geheim, aber so bleibt
+# der Wert konfigurierbar statt im Repo zu liegen).
+ARG SUPABASE_PUBLISHABLE_KEY
 
 # Git-Sicherheitscheck im Container abschalten
 RUN git config --global --add safe.directory /app
@@ -17,7 +18,7 @@ COPY . .
 RUN flutter create --platforms=web . \
  && flutter pub get \
  && flutter build web --release \
-      --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+      --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
 
 # ---- Runtime-Stage: statisch via nginx ausliefern ----
 FROM nginx:alpine

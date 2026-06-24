@@ -1,9 +1,9 @@
 /// Supabase-Verbindungsdaten.
 ///
-/// Der Anon-/Publishable-Key wird **nicht** im Code eingecheckt, sondern beim
-/// Build per `--dart-define` (bzw. CI-Secret / Docker build-arg) injiziert:
+/// Der Publishable-Key wird **nicht** im Code eingecheckt, sondern beim
+/// Build per `--dart-define` (bzw. CI-Variable / Docker build-arg) injiziert:
 ///
-///   flutter run -d chrome --dart-define=SUPABASE_ANON_KEY=...
+///   flutter run -d chrome --dart-define=SUPABASE_PUBLISHABLE_KEY=...
 ///
 /// Alternativ gebündelt aus einer (gitignorierten) Datei:
 ///   flutter run --dart-define-from-file=dart_defines.json
@@ -20,8 +20,9 @@ class SupabaseConfig {
     defaultValue: 'https://vnfkkujtkbgkqafbbipj.supabase.co',
   );
 
-  /// Kein Default – muss zur Build-Zeit gesetzt werden.
-  static const String anonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  /// Kein Default – wird zur Build-Zeit gesetzt. Heißt SDK-seitig weiterhin
+  /// `anonKey`, hält aber den modernen Publishable Key (`sb_publishable_…`).
+  static const String anonKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
   static bool get isConfigured => url.isNotEmpty && anonKey.isNotEmpty;
 }
