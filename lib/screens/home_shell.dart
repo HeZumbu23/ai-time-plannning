@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../config/app_config.dart';
 import 'backlog_screen.dart';
+import 'config_qr_screen.dart';
 import 'projekte_screen.dart';
 import 'tagesplan_screen.dart';
 import 'wochenplan_screen.dart';
@@ -17,6 +19,36 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
   static const _titles = ['Tagesplan', 'Wochenplan', 'Backlog', 'Projekte'];
+
+  Future<void> _openConfig() async {
+    final result =
+        await Navigator.of(context).push<({String url, String anonKey})>(
+      MaterialPageRoute(builder: (_) => const ConfigQrScreen()),
+    );
+    if (result == null || !mounted) return;
+
+    await AppConfig.save(url: result.url, anonKey: result.anonKey);
+    if (!mounted) return;
+    // Supabase ist bereits initialisiert und kann nicht live neu verbunden
+    // werden -> Neustart der App nötig, damit der neue Key greift.
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Gespeichert'),
+        content: const Text(
+          'Die neuen Verbindungsdaten wurden gespeichert. '
+          'Bitte die App einmal komplett schließen und neu öffnen, '
+          'damit sie wirksam werden.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
 
   final _screens = const [
     TagesplanScreen(),
@@ -50,6 +82,13 @@ class _HomeShellState extends State<HomeShell> {
 
     final appBar = AppBar(
       title: Text(_titles[_index]),
+      actions: [
+        IconButton(
+          tooltip: 'Verbindung / Key ändern',
+          icon: const Icon(Icons.settings),
+          onPressed: _openConfig,
+        ),
+      ],
     );
 
     final body = IndexedStack(index: _index, children: _screens);
