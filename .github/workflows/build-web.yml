@@ -4,9 +4,14 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Auto-Merge pusht mit GITHUB_TOKEN -> löst kein push-Event aus.
+  workflow_run:
+    workflows: ["Auto-merge claude branches"]
+    types: [completed]
 
 jobs:
   build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
