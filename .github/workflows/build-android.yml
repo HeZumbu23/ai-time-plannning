@@ -34,6 +34,19 @@ jobs:
       - name: Generate Android scaffold
         run: flutter create --platforms=android --org de.kerch .
 
+      # WICHTIG: flutter create legt die INTERNET-Permission nur ins
+      # debug-/profile-Manifest, NICHT ins main (= Release). Ohne sie scheitert
+      # im Release jede Netzwerkanfrage mit "Failed host lookup (errno 7)".
+      # Da das Scaffold bei jedem Build neu entsteht, hier idempotent setzen.
+      - name: Add INTERNET permission to release manifest
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          if ! grep -q 'android.permission.INTERNET' "$MANIFEST"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET" />\n    <application#' "$MANIFEST"
+            echo "INTERNET-Permission ergänzt."
+          fi
+          grep -n 'INTERNET' "$MANIFEST" || true
+
       - name: Pub get
         run: flutter pub get
 
