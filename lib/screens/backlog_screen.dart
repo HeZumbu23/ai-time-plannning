@@ -52,6 +52,8 @@ class _BacklogScreenState extends State<BacklogScreen> {
   }
 
   Widget _buildGrouped(_BacklogData data) {
+    final theme = Theme.of(context);
+
     // Gruppieren nach project_id (null -> "Ohne Projekt").
     final groups = <String?, List<Task>>{};
     for (final t in data.tasks) {
@@ -62,8 +64,10 @@ class _BacklogScreenState extends State<BacklogScreen> {
       if (id == null) return 'Ohne Projekt';
       final p = data.projects[id];
       if (p == null) return 'Projekt $id';
-      return '${p.icon ?? '📁'}  ${p.name}';
+      return p.name;
     }
+
+    String? icon(String? id) => id == null ? null : data.projects[id]?.icon;
 
     final keys = groups.keys.toList()
       ..sort((a, b) {
@@ -72,23 +76,57 @@ class _BacklogScreenState extends State<BacklogScreen> {
         return label(a).toLowerCase().compareTo(label(b).toLowerCase());
       });
 
-    final children = <Widget>[];
-    for (final key in keys) {
-      children.add(SectionHeader(
-          label(key), key == null ? Icons.inbox_outlined : Icons.folder_outlined));
-      final list = groups[key]!;
-      for (var i = 0; i < list.length; i++) {
-        final t = list[i];
-        children.add(TaskTile(
-          task: t,
-          shaded: i.isOdd,
-          onTap: () => _openDetail(t),
-          onToggleDone: (v) => _toggleDone(t, v),
-        ));
-      }
-    }
-    children.add(const SizedBox(height: 24));
-    return ListView(children: children);
+    final headerColor = theme.colorScheme.secondaryContainer;
+    final onHeader = theme.colorScheme.onSecondaryContainer;
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        for (final key in keys)
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            clipBehavior: Clip.antiAlias,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.outlineVariant),
+            ),
+            child: ExpansionTile(
+              key: PageStorageKey<String>('backlog_${key ?? 'none'}'),
+              initiallyExpanded: true,
+              backgroundColor: headerColor.withOpacity(0.25),
+              collapsedBackgroundColor: headerColor,
+              iconColor: onHeader,
+              collapsedIconColor: onHeader,
+              tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+              childrenPadding: EdgeInsets.zero,
+              leading: Text(
+                key == null ? '📥' : (icon(key) ?? '📁'),
+                style: const TextStyle(fontSize: 20),
+              ),
+              title: Text(
+                label(key),
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.bold, color: onHeader),
+              ),
+              subtitle: Text(
+                '${groups[key]!.length} Aufgaben',
+                style: theme.textTheme.labelSmall?.copyWith(color: onHeader),
+              ),
+              children: [
+                for (final (i, t) in groups[key]!.indexed)
+                  TaskTile(
+                    task: t,
+                    shaded: i.isOdd,
+                    onTap: () => _openDetail(t),
+                    onToggleDone: (v) => _toggleDone(t, v),
+                  ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 24),
+      ],
+    );
   }
 
   @override
