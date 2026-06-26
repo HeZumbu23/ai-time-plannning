@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../models/project.dart';
 import '../models/task.dart';
+import '../services/project_service.dart';
 import '../services/task_service.dart';
 import '../widgets/status_views.dart';
 import '../widgets/task_tile.dart';
 import 'task_detail_screen.dart';
 
-/// Backlog: offene Tasks ohne konkrete Tagesplanung.
+/// Backlog: offene Tasks ohne konkrete Tagesplanung, nach Projekt gruppiert.
 class BacklogScreen extends StatefulWidget {
   const BacklogScreen({super.key});
 
@@ -16,16 +18,24 @@ class BacklogScreen extends StatefulWidget {
 
 class _BacklogScreenState extends State<BacklogScreen> {
   final _service = TaskService();
-  late Future<List<Task>> _future;
+  final _projects = ProjectService();
+  late Future<_BacklogData> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = _service.backlog();
+    _future = _load();
+  }
+
+  Future<_BacklogData> _load() async {
+    final results = await Future.wait([_service.backlog(), _projects.all()]);
+    final tasks = results[0] as List<Task>;
+    final projects = {for (final p in results[1] as List<Project>) p.id: p};
+    return _BacklogData(tasks: tasks, projects: projects);
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _service.backlog());
+    setState(() => _future = _load());
     await _future;
   }
 
@@ -41,11 +51,51 @@ class _BacklogScreenState extends State<BacklogScreen> {
     if (changed == true) await _refresh();
   }
 
+  Widget _buildGrouped(_BacklogData data) {
+    // Gruppieren nach project_id (null -> "Ohne Projekt").
+    final groups = <String?, List<Task>>{};
+    for (final t in data.tasks) {
+      (groups[t.projectId] ??= []).add(t);
+    }
+
+    String label(String? id) {
+      if (id == null) return 'Ohne Projekt';
+      final p = data.projects[id];
+      if (p == null) return 'Projekt $id';
+      return '${p.icon ?? '📁'}  ${p.name}';
+    }
+
+    final keys = groups.keys.toList()
+      ..sort((a, b) {
+        if (a == null) return 1; // "Ohne Projekt" ans Ende
+        if (b == null) return -1;
+        return label(a).toLowerCase().compareTo(label(b).toLowerCase());
+      });
+
+    final children = <Widget>[];
+    for (final key in keys) {
+      children.add(SectionHeader(
+          label(key), key == null ? Icons.inbox_outlined : Icons.folder_outlined));
+      final list = groups[key]!;
+      for (var i = 0; i < list.length; i++) {
+        final t = list[i];
+        children.add(TaskTile(
+          task: t,
+          shaded: i.isOdd,
+          onTap: () => _openDetail(t),
+          onToggleDone: (v) => _toggleDone(t, v),
+        ));
+      }
+    }
+    children.add(const SizedBox(height: 24));
+    return ListView(children: children);
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: _refresh,
-      child: FutureBuilder<List<Task>>(
+      child: FutureBuilder<_BacklogData>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -54,21 +104,19 @@ class _BacklogScreenState extends State<BacklogScreen> {
           if (snapshot.hasError) {
             return ErrorView(error: snapshot.error!, onRetry: _refresh);
           }
-          final tasks = snapshot.data!;
-          if (tasks.isEmpty) {
+          final data = snapshot.data!;
+          if (data.tasks.isEmpty) {
             return const EmptyView(message: 'Backlog ist leer. 📭');
           }
-          return ListView.builder(
-            itemCount: tasks.length,
-            itemBuilder: (context, i) => TaskTile(
-              task: tasks[i],
-              shaded: i.isOdd,
-              onTap: () => _openDetail(tasks[i]),
-              onToggleDone: (v) => _toggleDone(tasks[i], v),
-            ),
-          );
+          return _buildGrouped(data);
         },
       ),
     );
   }
+}
+
+class _BacklogData {
+  _BacklogData({required this.tasks, required this.projects});
+  final List<Task> tasks;
+  final Map<String, Project> projects;
 }
