@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/project.dart';
 import '../models/task.dart';
+import '../services/project_service.dart';
 import '../services/task_service.dart';
 import '../widgets/status_views.dart';
 import '../widgets/task_tile.dart';
@@ -16,16 +18,27 @@ class TagesplanScreen extends StatefulWidget {
 
 class _TagesplanScreenState extends State<TagesplanScreen> {
   final _service = TaskService();
-  late Future<List<Task>> _future;
+  final _projects = ProjectService();
+  late Future<_TagesplanData> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = _service.tasksForDay(DateTime.now());
+    _future = _load();
+  }
+
+  Future<_TagesplanData> _load() async {
+    final results = await Future.wait([
+      _service.tasksForDay(DateTime.now()),
+      _projects.all(),
+    ]);
+    final tasks = results[0] as List<Task>;
+    final projects = {for (final p in results[1] as List<Project>) p.id: p};
+    return _TagesplanData(tasks: tasks, projects: projects);
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _service.tasksForDay(DateTime.now()));
+    setState(() => _future = _load());
     await _future;
   }
 
@@ -44,10 +57,11 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
   // Bevorzugte Reihenfolge der Kontexte; Unbekanntes danach, "ohne" ganz hinten.
   static const _contextOrder = ['büro', 'stadt', 'samstag', 'sonntag', 'flexibel'];
 
-  /// Tasks nach Kontext gruppiert.
-  Widget _buildGrouped(List<Task> tasks) {
+  /// Tasks nach Kontext gruppiert mit einklappbaren Gruppen.
+  Widget _buildGrouped(_TagesplanData data) {
+    final theme = Theme.of(context);
     final groups = <String?, List<Task>>{};
-    for (final t in tasks) {
+    for (final t in data.tasks) {
       (groups[t.context] ??= []).add(t);
     }
 
@@ -63,31 +77,67 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
         return r != 0 ? r : (a ?? '').compareTo(b ?? '');
       });
 
-    final children = <Widget>[];
-    for (final key in keys) {
-      children.add(SectionHeader(
-          key == null ? 'Ohne Kontext' : key,
-          key == null ? Icons.inbox_outlined : Icons.place_outlined));
-      final list = groups[key]!;
-      for (var i = 0; i < list.length; i++) {
-        final t = list[i];
-        children.add(TaskTile(
-          task: t,
-          shaded: i.isOdd,
-          onTap: () => _openDetail(t),
-          onToggleDone: (v) => _toggleDone(t, v),
-        ));
-      }
-    }
-    children.add(const SizedBox(height: 24));
-    return ListView(children: children);
+    final headerColor = theme.colorScheme.secondaryContainer;
+    final onHeader = theme.colorScheme.onSecondaryContainer;
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        for (final key in keys)
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            clipBehavior: Clip.antiAlias,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.outlineVariant),
+            ),
+            child: ExpansionTile(
+              key: PageStorageKey<String>('tagesplan_${key ?? 'none'}'),
+              initiallyExpanded: true,
+              backgroundColor: headerColor.withOpacity(0.25),
+              collapsedBackgroundColor: headerColor,
+              iconColor: onHeader,
+              collapsedIconColor: onHeader,
+              tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+              childrenPadding: EdgeInsets.zero,
+              leading: Text(
+                key == null ? '📥' : '📍',
+                style: const TextStyle(fontSize: 20),
+              ),
+              title: Text(
+                key == null ? 'Ohne Kontext' : key,
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.bold, color: onHeader),
+              ),
+              subtitle: Text(
+                '${groups[key]!.length} Aufgaben',
+                style: theme.textTheme.labelSmall?.copyWith(color: onHeader),
+              ),
+              children: [
+                for (final (i, t) in groups[key]!.indexed)
+                  TaskTile(
+                    task: t,
+                    shaded: i.isOdd,
+                    projectIcon: t.projectId != null
+                        ? data.projects[t.projectId]?.icon
+                        : null,
+                    onTap: () => _openDetail(t),
+                    onToggleDone: (v) => _toggleDone(t, v),
+                  ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 24),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: _refresh,
-      child: FutureBuilder<List<Task>>(
+      child: FutureBuilder<_TagesplanData>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -96,14 +146,20 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
           if (snapshot.hasError) {
             return ErrorView(error: snapshot.error!, onRetry: _refresh);
           }
-          final tasks = snapshot.data!;
-          if (tasks.isEmpty) {
+          final data = snapshot.data!;
+          if (data.tasks.isEmpty) {
             return const EmptyView(
                 message: 'Heute nichts geplant. Genieß den Tag! 🎉');
           }
-          return _buildGrouped(tasks);
+          return _buildGrouped(data);
         },
       ),
     );
   }
+}
+
+class _TagesplanData {
+  _TagesplanData({required this.tasks, required this.projects});
+  final List<Task> tasks;
+  final Map<String, Project> projects;
 }

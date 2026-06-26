@@ -10,6 +10,7 @@ class TaskTile extends StatelessWidget {
     required this.onToggleDone,
     this.onTap,
     this.shaded = false,
+    this.projectIcon,
   });
 
   final Task task;
@@ -20,6 +21,9 @@ class TaskTile extends StatelessWidget {
 
   /// Für abwechselnde Zeilen-Schattierung (jede zweite Zeile).
   final bool shaded;
+
+  /// Projekticon zum Anzeigen neben dem Titel.
+  final String? projectIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -38,14 +42,26 @@ class TaskTile extends StatelessWidget {
         value: done,
         onChanged: (v) => onToggleDone(v ?? false),
       ),
-      title: Text(
-        task.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          decoration: done ? TextDecoration.lineThrough : null,
-          color: done ? theme.disabledColor : null,
-        ),
+      title: Row(
+        children: [
+          if (projectIcon != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Text(projectIcon!,
+                  style: const TextStyle(fontSize: 16)),
+            ),
+          Expanded(
+            child: Text(
+              task.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                decoration: done ? TextDecoration.lineThrough : null,
+                color: done ? theme.disabledColor : null,
+              ),
+            ),
+          ),
+        ],
       ),
       subtitle: _buildSubtitle(theme),
     );
