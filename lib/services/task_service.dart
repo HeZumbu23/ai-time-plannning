@@ -78,6 +78,17 @@ class TaskService {
     return rows.map<Task>((r) => Task.fromMap(r)).toList();
   }
 
+  /// Einzelnen Task laden.
+  Future<Task> byId(String id) async {
+    final row = await _client.from('tasks').select().eq('id', id).single();
+    return Task.fromMap(row);
+  }
+
+  /// Beliebige Felder aktualisieren (für die Detail-Seite).
+  Future<void> updateFields(String id, Map<String, dynamic> patch) async {
+    await _client.from('tasks').update(patch).eq('id', id);
+  }
+
   /// Status setzen (z.B. als erledigt markieren).
   Future<void> setStatus(String id, String status) async {
     final patch = <String, dynamic>{'status': status};
