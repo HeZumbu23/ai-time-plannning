@@ -9,11 +9,15 @@ class TaskTile extends StatelessWidget {
     required this.task,
     required this.onToggleDone,
     this.onToggleNextAction,
+    this.shaded = false,
   });
 
   final Task task;
   final ValueChanged<bool> onToggleDone;
   final VoidCallback? onToggleNextAction;
+
+  /// Für abwechselnde Zeilen-Schattierung (jede zweite Zeile).
+  final bool shaded;
 
   @override
   Widget build(BuildContext context) {
@@ -21,13 +25,21 @@ class TaskTile extends StatelessWidget {
     final done = task.isDone;
 
     return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      tileColor: shaded
+          ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.35)
+          : null,
       leading: Checkbox(
+        visualDensity: VisualDensity.compact,
         value: done,
         onChanged: (v) => onToggleDone(v ?? false),
       ),
       title: Text(
         task.title,
-        style: TextStyle(
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodyMedium?.copyWith(
           decoration: done ? TextDecoration.lineThrough : null,
           color: done ? theme.disabledColor : null,
         ),
@@ -36,6 +48,7 @@ class TaskTile extends StatelessWidget {
       trailing: onToggleNextAction == null
           ? null
           : IconButton(
+              visualDensity: VisualDensity.compact,
               tooltip: 'Next Action',
               icon: Icon(
                 task.nextAction ? Icons.bolt : Icons.bolt_outlined,

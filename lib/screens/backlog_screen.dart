@@ -59,6 +59,7 @@ class _BacklogScreenState extends State<BacklogScreen> {
             itemCount: tasks.length,
             itemBuilder: (context, i) => TaskTile(
               task: tasks[i],
+              shaded: i.isOdd,
               onToggleDone: (v) => _toggleDone(tasks[i], v),
               onToggleNextAction: () => _toggleNext(tasks[i]),
             ),

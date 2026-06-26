@@ -74,18 +74,20 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
             children: [
               if (data.dayTasks.isNotEmpty) ...[
                 const SectionHeader('Heute', Icons.today),
-                ...data.dayTasks.map((t) => TaskTile(
-                      task: t,
-                      onToggleDone: (v) => _toggleDone(t, v),
-                      onToggleNextAction: () => _toggleNext(t),
+                ...data.dayTasks.indexed.map((e) => TaskTile(
+                      task: e.$2,
+                      shaded: e.$1.isOdd,
+                      onToggleDone: (v) => _toggleDone(e.$2, v),
+                      onToggleNextAction: () => _toggleNext(e.$2),
                     )),
               ],
               if (data.nextActions.isNotEmpty) ...[
                 const SectionHeader('Next Actions', Icons.bolt),
-                ...data.nextActions.map((t) => TaskTile(
-                      task: t,
-                      onToggleDone: (v) => _toggleDone(t, v),
-                      onToggleNextAction: () => _toggleNext(t),
+                ...data.nextActions.indexed.map((e) => TaskTile(
+                      task: e.$2,
+                      shaded: e.$1.isOdd,
+                      onToggleDone: (v) => _toggleDone(e.$2, v),
+                      onToggleNextAction: () => _toggleNext(e.$2),
                     )),
               ],
               const SizedBox(height: 24),

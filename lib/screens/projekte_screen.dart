@@ -150,6 +150,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               itemCount: tasks.length,
               itemBuilder: (context, i) => TaskTile(
                 task: tasks[i],
+                shaded: i.isOdd,
                 onToggleDone: (v) => _toggleDone(tasks[i], v),
               ),
             );

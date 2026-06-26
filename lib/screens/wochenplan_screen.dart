@@ -106,6 +106,7 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
                   itemCount: tasks.length,
                   itemBuilder: (context, i) => TaskTile(
                     task: tasks[i],
+                    shaded: i.isOdd,
                     onToggleDone: (v) => _toggleDone(tasks[i], v),
                     onToggleNextAction: () => _toggleNext(tasks[i]),
                   ),
