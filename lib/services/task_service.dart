@@ -12,16 +12,9 @@ class TaskService {
     return '${d.year}-$m-$day';
   }
 
-  /// Erledigte Tasks ans Ende schieben; Reihenfolge innerhalb der Gruppen
-  /// (offen / erledigt) bleibt erhalten.
-  static List<Task> _doneLast(List<Task> tasks) {
-    final open = tasks.where((t) => !t.isDone).toList();
-    final done = tasks.where((t) => t.isDone).toList();
-    return [...open, ...done];
-  }
-
   /// Tasks für ein bestimmtes Datum (planned_day = day).
-  /// Erledigte bleiben sichtbar (durchgestrichen, ans Ende sortiert).
+  /// Erledigte bleiben sichtbar (durchgestrichen) und behalten ihre Position –
+  /// Abhaken ändert die Reihenfolge nicht.
   Future<List<Task>> tasksForDay(DateTime day) async {
     final rows = await _client
         .from('tasks')
@@ -29,7 +22,7 @@ class TaskService {
         .eq('planned_day', _dateOnly(day))
         .order('next_action', ascending: false)
         .order('size');
-    return _doneLast(rows.map<Task>((r) => Task.fromMap(r)).toList());
+    return rows.map<Task>((r) => Task.fromMap(r)).toList();
   }
 
   /// Offene Next Actions (next_action = true), unabhängig vom Tag.
@@ -44,7 +37,7 @@ class TaskService {
   }
 
   /// Tasks einer Kalenderwoche (planned_week).
-  /// Erledigte bleiben sichtbar (durchgestrichen, ans Ende sortiert).
+  /// Erledigte bleiben sichtbar (durchgestrichen) und behalten ihre Position.
   Future<List<Task>> tasksForWeek(int week) async {
     final rows = await _client
         .from('tasks')
@@ -52,7 +45,7 @@ class TaskService {
         .eq('planned_week', week)
         .order('planned_day', nullsFirst: false)
         .order('size');
-    return _doneLast(rows.map<Task>((r) => Task.fromMap(r)).toList());
+    return rows.map<Task>((r) => Task.fromMap(r)).toList();
   }
 
   /// Backlog: alles Offene ohne konkrete Tagesplanung.
