@@ -48,11 +48,6 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
     await _refresh();
   }
 
-  Future<void> _toggleNext(Task task) async {
-    await _service.setNextAction(task.id, !task.nextAction);
-    await _refresh();
-  }
-
   Future<void> _openDetail(Task task) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task)),
@@ -87,17 +82,15 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
                       shaded: e.$1.isOdd,
                       onTap: () => _openDetail(e.$2),
                       onToggleDone: (v) => _toggleDone(e.$2, v),
-                      onToggleNextAction: () => _toggleNext(e.$2),
                     )),
               ],
               if (data.nextActions.isNotEmpty) ...[
-                const SectionHeader('Next Actions', Icons.bolt),
+                const SectionHeader('Next Actions', Icons.star),
                 ...data.nextActions.indexed.map((e) => TaskTile(
                       task: e.$2,
                       shaded: e.$1.isOdd,
                       onTap: () => _openDetail(e.$2),
                       onToggleDone: (v) => _toggleDone(e.$2, v),
-                      onToggleNextAction: () => _toggleNext(e.$2),
                     )),
               ],
               const SizedBox(height: 24),
