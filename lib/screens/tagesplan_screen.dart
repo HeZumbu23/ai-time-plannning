@@ -6,7 +6,7 @@ import '../widgets/status_views.dart';
 import '../widgets/task_tile.dart';
 import 'task_detail_screen.dart';
 
-/// Tagesplan: Tasks für heute (planned_day = today) + offene Next Actions.
+/// Tagesplan: Tasks für heute (planned_day = today).
 class TagesplanScreen extends StatefulWidget {
   const TagesplanScreen({super.key});
 
@@ -16,30 +16,16 @@ class TagesplanScreen extends StatefulWidget {
 
 class _TagesplanScreenState extends State<TagesplanScreen> {
   final _service = TaskService();
-  late Future<_TagesplanData> _future;
+  late Future<List<Task>> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = _load();
-  }
-
-  Future<_TagesplanData> _load() async {
-    final today = DateTime.now();
-    final results = await Future.wait([
-      _service.tasksForDay(today),
-      _service.nextActions(),
-    ]);
-    final dayTasks = results[0];
-    final dayIds = dayTasks.map((t) => t.id).toSet();
-    // Next Actions, die nicht schon im Tagesplan stehen.
-    final nextActions =
-        results[1].where((t) => !dayIds.contains(t.id)).toList();
-    return _TagesplanData(dayTasks: dayTasks, nextActions: nextActions);
+    _future = _service.tasksForDay(DateTime.now());
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _load());
+    setState(() => _future = _service.tasksForDay(DateTime.now()));
     await _future;
   }
 
@@ -59,7 +45,7 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: _refresh,
-      child: FutureBuilder<_TagesplanData>(
+      child: FutureBuilder<List<Task>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -68,42 +54,22 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
           if (snapshot.hasError) {
             return ErrorView(error: snapshot.error!, onRetry: _refresh);
           }
-          final data = snapshot.data!;
-          if (data.dayTasks.isEmpty && data.nextActions.isEmpty) {
+          final tasks = snapshot.data!;
+          if (tasks.isEmpty) {
             return const EmptyView(
                 message: 'Heute nichts geplant. Genieß den Tag! 🎉');
           }
-          return ListView(
-            children: [
-              if (data.dayTasks.isNotEmpty) ...[
-                const SectionHeader('Heute', Icons.today),
-                ...data.dayTasks.indexed.map((e) => TaskTile(
-                      task: e.$2,
-                      shaded: e.$1.isOdd,
-                      onTap: () => _openDetail(e.$2),
-                      onToggleDone: (v) => _toggleDone(e.$2, v),
-                    )),
-              ],
-              if (data.nextActions.isNotEmpty) ...[
-                const SectionHeader('Next Actions', Icons.star),
-                ...data.nextActions.indexed.map((e) => TaskTile(
-                      task: e.$2,
-                      shaded: e.$1.isOdd,
-                      onTap: () => _openDetail(e.$2),
-                      onToggleDone: (v) => _toggleDone(e.$2, v),
-                    )),
-              ],
-              const SizedBox(height: 24),
-            ],
+          return ListView.builder(
+            itemCount: tasks.length,
+            itemBuilder: (context, i) => TaskTile(
+              task: tasks[i],
+              shaded: i.isOdd,
+              onTap: () => _openDetail(tasks[i]),
+              onToggleDone: (v) => _toggleDone(tasks[i], v),
+            ),
           );
         },
       ),
     );
   }
-}
-
-class _TagesplanData {
-  _TagesplanData({required this.dayTasks, required this.nextActions});
-  final List<Task> dayTasks;
-  final List<Task> nextActions;
 }
