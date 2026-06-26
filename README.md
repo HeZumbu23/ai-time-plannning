@@ -6,8 +6,13 @@ Supabase-Backend.
 ## Features (Stand)
 
 - **Kein Login** – RLS ist deaktiviert, der Anon-Key greift direkt
-- **Haupt-Navigation**: Tagesplan · Wochenplan · Backlog · Projekte
+- **Haupt-Navigation**: Tagesplan · Wochenplan · Backlog · Projekte · Chat
   (NavigationRail auf breiten Screens, NavigationBar auf schmalen)
+- **Chat mit Claude**: natürlichsprachliche Befehle für Tasks (anlegen, ändern,
+  abhaken, suchen) über die Anthropic-API mit Tool-Use direkt auf Supabase.
+  Der **Anthropic-API-Key** ist geheim und wird **nur lokal** im Gerät
+  gespeichert (Chat-Tab → Zahnrad), nie im Build/Repo. Modellwahl: Opus 4.8 /
+  Sonnet 4.6 / Haiku 4.5.
 - **Tagesplan**: Tasks für heute (`planned_day = today`) + offene Next Actions
 - **Wochenplan**: Tasks der Kalenderwoche (`planned_week`), mit Wochen-Navigation
 - **Backlog**: offene Tasks ohne Tagesplanung
