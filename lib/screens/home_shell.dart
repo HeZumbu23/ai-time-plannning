@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'backlog_screen.dart';
+import 'chat_screen.dart';
 import 'projekte_screen.dart';
 import 'tagesplan_screen.dart';
 import 'wochenplan_screen.dart';
 
-/// Haupt-Navigation: Tagesplan | Wochenplan | Backlog | Projekte
+/// Haupt-Navigation: Tagesplan | Wochenplan | Backlog | Projekte | Chat
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -16,13 +17,20 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
-  static const _titles = ['Tagesplan', 'Wochenplan', 'Backlog', 'Projekte'];
+  static const _titles = [
+    'Tagesplan',
+    'Wochenplan',
+    'Backlog',
+    'Projekte',
+    'Chat'
+  ];
 
   final _screens = const [
     TagesplanScreen(),
     WochenplanScreen(),
     BacklogScreen(),
     ProjekteScreen(),
+    ChatScreen(),
   ];
 
   static const _destinations = [
@@ -42,6 +50,10 @@ class _HomeShellState extends State<HomeShell> {
         icon: Icon(Icons.folder_outlined),
         selectedIcon: Icon(Icons.folder),
         label: 'Projekte'),
+    NavigationDestination(
+        icon: Icon(Icons.chat_bubble_outline),
+        selectedIcon: Icon(Icons.chat_bubble),
+        label: 'Chat'),
   ];
 
   @override
