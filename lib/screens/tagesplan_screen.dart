@@ -41,6 +41,48 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
     if (changed == true) await _refresh();
   }
 
+  // Bevorzugte Reihenfolge der Kontexte; Unbekanntes danach, "ohne" ganz hinten.
+  static const _contextOrder = ['büro', 'stadt', 'samstag', 'sonntag', 'flexibel'];
+
+  /// Tasks nach Kontext gruppiert.
+  Widget _buildGrouped(List<Task> tasks) {
+    final groups = <String?, List<Task>>{};
+    for (final t in tasks) {
+      (groups[t.context] ??= []).add(t);
+    }
+
+    int rank(String? c) {
+      if (c == null) return 1000; // "ohne Kontext" ans Ende
+      final i = _contextOrder.indexOf(c);
+      return i == -1 ? 500 : i;
+    }
+
+    final keys = groups.keys.toList()
+      ..sort((a, b) {
+        final r = rank(a).compareTo(rank(b));
+        return r != 0 ? r : (a ?? '').compareTo(b ?? '');
+      });
+
+    final children = <Widget>[];
+    for (final key in keys) {
+      children.add(SectionHeader(
+          key == null ? 'Ohne Kontext' : key,
+          key == null ? Icons.inbox_outlined : Icons.place_outlined));
+      final list = groups[key]!;
+      for (var i = 0; i < list.length; i++) {
+        final t = list[i];
+        children.add(TaskTile(
+          task: t,
+          shaded: i.isOdd,
+          onTap: () => _openDetail(t),
+          onToggleDone: (v) => _toggleDone(t, v),
+        ));
+      }
+    }
+    children.add(const SizedBox(height: 24));
+    return ListView(children: children);
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -59,15 +101,7 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
             return const EmptyView(
                 message: 'Heute nichts geplant. Genieß den Tag! 🎉');
           }
-          return ListView.builder(
-            itemCount: tasks.length,
-            itemBuilder: (context, i) => TaskTile(
-              task: tasks[i],
-              shaded: i.isOdd,
-              onTap: () => _openDetail(tasks[i]),
-              onToggleDone: (v) => _toggleDone(tasks[i], v),
-            ),
-          );
+          return _buildGrouped(tasks);
         },
       ),
     );
