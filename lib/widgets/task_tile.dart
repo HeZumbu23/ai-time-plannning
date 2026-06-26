@@ -9,12 +9,16 @@ class TaskTile extends StatelessWidget {
     required this.task,
     required this.onToggleDone,
     this.onToggleNextAction,
+    this.onTap,
     this.shaded = false,
   });
 
   final Task task;
   final ValueChanged<bool> onToggleDone;
   final VoidCallback? onToggleNextAction;
+
+  /// Antippen der Zeile (öffnet z.B. die Detail-Seite).
+  final VoidCallback? onTap;
 
   /// Für abwechselnde Zeilen-Schattierung (jede zweite Zeile).
   final bool shaded;
@@ -27,6 +31,7 @@ class TaskTile extends StatelessWidget {
     return ListTile(
       dense: true,
       visualDensity: VisualDensity.compact,
+      onTap: onTap,
       tileColor: shaded
           ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.35)
           : null,

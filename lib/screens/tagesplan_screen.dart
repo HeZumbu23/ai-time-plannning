@@ -4,6 +4,7 @@ import '../models/task.dart';
 import '../services/task_service.dart';
 import '../widgets/status_views.dart';
 import '../widgets/task_tile.dart';
+import 'task_detail_screen.dart';
 
 /// Tagesplan: Tasks für heute (planned_day = today) + offene Next Actions.
 class TagesplanScreen extends StatefulWidget {
@@ -52,6 +53,13 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
     await _refresh();
   }
 
+  Future<void> _openDetail(Task task) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task)),
+    );
+    if (changed == true) await _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -77,6 +85,7 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
                 ...data.dayTasks.indexed.map((e) => TaskTile(
                       task: e.$2,
                       shaded: e.$1.isOdd,
+                      onTap: () => _openDetail(e.$2),
                       onToggleDone: (v) => _toggleDone(e.$2, v),
                       onToggleNextAction: () => _toggleNext(e.$2),
                     )),
@@ -86,6 +95,7 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
                 ...data.nextActions.indexed.map((e) => TaskTile(
                       task: e.$2,
                       shaded: e.$1.isOdd,
+                      onTap: () => _openDetail(e.$2),
                       onToggleDone: (v) => _toggleDone(e.$2, v),
                       onToggleNextAction: () => _toggleNext(e.$2),
                     )),

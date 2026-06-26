@@ -4,6 +4,7 @@ import '../models/task.dart';
 import '../services/task_service.dart';
 import '../widgets/status_views.dart';
 import '../widgets/task_tile.dart';
+import 'task_detail_screen.dart';
 
 /// Wochenplan: Tasks der gewählten Kalenderwoche (planned_week).
 class WochenplanScreen extends StatefulWidget {
@@ -62,6 +63,13 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
     await _refresh();
   }
 
+  Future<void> _openDetail(Task task) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task)),
+    );
+    if (changed == true) await _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -107,6 +115,7 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
                   itemBuilder: (context, i) => TaskTile(
                     task: tasks[i],
                     shaded: i.isOdd,
+                    onTap: () => _openDetail(tasks[i]),
                     onToggleDone: (v) => _toggleDone(tasks[i], v),
                     onToggleNextAction: () => _toggleNext(tasks[i]),
                   ),

@@ -4,6 +4,7 @@ import '../models/task.dart';
 import '../services/task_service.dart';
 import '../widgets/status_views.dart';
 import '../widgets/task_tile.dart';
+import 'task_detail_screen.dart';
 
 /// Backlog: offene Tasks ohne konkrete Tagesplanung.
 class BacklogScreen extends StatefulWidget {
@@ -38,6 +39,13 @@ class _BacklogScreenState extends State<BacklogScreen> {
     await _refresh();
   }
 
+  Future<void> _openDetail(Task task) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task)),
+    );
+    if (changed == true) await _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -60,6 +68,7 @@ class _BacklogScreenState extends State<BacklogScreen> {
             itemBuilder: (context, i) => TaskTile(
               task: tasks[i],
               shaded: i.isOdd,
+              onTap: () => _openDetail(tasks[i]),
               onToggleDone: (v) => _toggleDone(tasks[i], v),
               onToggleNextAction: () => _toggleNext(tasks[i]),
             ),
