@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/project.dart';
 import '../models/task.dart';
+import '../services/project_service.dart';
 import '../services/task_service.dart';
 import '../widgets/status_views.dart';
 import '../widgets/task_tile.dart';
@@ -16,14 +18,25 @@ class WochenplanScreen extends StatefulWidget {
 
 class _WochenplanScreenState extends State<WochenplanScreen> {
   final _service = TaskService();
+  final _projects = ProjectService();
   late int _week;
-  late Future<List<Task>> _future;
+  late Future<_WochenplanData> _future;
 
   @override
   void initState() {
     super.initState();
     _week = _isoWeekNumber(DateTime.now());
-    _future = _service.tasksForWeek(_week);
+    _future = _load();
+  }
+
+  Future<_WochenplanData> _load() async {
+    final results = await Future.wait([
+      _service.tasksForWeek(_week),
+      _projects.all(),
+    ]);
+    final tasks = results[0] as List<Task>;
+    final projects = {for (final p in results[1] as List<Project>) p.id: p};
+    return _WochenplanData(tasks: tasks, projects: projects);
   }
 
   /// ISO-8601 Kalenderwoche.
@@ -44,12 +57,12 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
   void _changeWeek(int delta) {
     setState(() {
       _week += delta;
-      _future = _service.tasksForWeek(_week);
+      _future = _load();
     });
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _service.tasksForWeek(_week));
+    setState(() => _future = _load());
     await _future;
   }
 
@@ -81,10 +94,11 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
     return '$wd · ${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.';
   }
 
-  /// Tasks nach Wochentag gruppiert (planned_day), mit Tages-Überschrift.
-  Widget _buildGrouped(List<Task> tasks) {
+  /// Tasks nach Wochentag gruppiert (planned_day) mit einklappbaren Gruppen.
+  Widget _buildGrouped(_WochenplanData data) {
+    final theme = Theme.of(context);
     final groups = <DateTime?, List<Task>>{};
-    for (final t in tasks) {
+    for (final t in data.tasks) {
       final key = t.plannedDay == null
           ? null
           : DateTime(t.plannedDay!.year, t.plannedDay!.month, t.plannedDay!.day);
@@ -97,23 +111,60 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
         return a.compareTo(b);
       });
 
-    final children = <Widget>[];
-    for (final key in keys) {
-      children.add(SectionHeader(
-          _dayLabel(key), key == null ? Icons.inbox_outlined : Icons.event));
-      final list = groups[key]!;
-      for (var i = 0; i < list.length; i++) {
-        final t = list[i];
-        children.add(TaskTile(
-          task: t,
-          shaded: i.isOdd,
-          onTap: () => _openDetail(t),
-          onToggleDone: (v) => _toggleDone(t, v),
-        ));
-      }
-    }
-    children.add(const SizedBox(height: 24));
-    return ListView(children: children);
+    final headerColor = theme.colorScheme.secondaryContainer;
+    final onHeader = theme.colorScheme.onSecondaryContainer;
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        for (final key in keys)
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            clipBehavior: Clip.antiAlias,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.outlineVariant),
+            ),
+            child: ExpansionTile(
+              key: PageStorageKey<String>('wochenplan_${key?.toString() ?? 'none'}'),
+              initiallyExpanded: true,
+              backgroundColor: headerColor.withOpacity(0.25),
+              collapsedBackgroundColor: headerColor,
+              iconColor: onHeader,
+              collapsedIconColor: onHeader,
+              tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+              childrenPadding: EdgeInsets.zero,
+              leading: Text(
+                key == null ? '📥' : '📅',
+                style: const TextStyle(fontSize: 20),
+              ),
+              title: Text(
+                _dayLabel(key),
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.bold, color: onHeader),
+              ),
+              subtitle: Text(
+                '${groups[key]!.length} Aufgaben',
+                style: theme.textTheme.labelSmall?.copyWith(color: onHeader),
+              ),
+              children: [
+                for (final (i, t) in groups[key]!.indexed)
+                  TaskTile(
+                    task: t,
+                    shaded: i.isOdd,
+                    projectIcon: t.projectId != null
+                        ? data.projects[t.projectId]?.icon
+                        : null,
+                    onTap: () => _openDetail(t),
+                    onToggleDone: (v) => _toggleDone(t, v),
+                  ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 24),
+      ],
+    );
   }
 
   @override
@@ -142,7 +193,7 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: _refresh,
-            child: FutureBuilder<List<Task>>(
+            child: FutureBuilder<_WochenplanData>(
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -151,12 +202,12 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
                 if (snapshot.hasError) {
                   return ErrorView(error: snapshot.error!, onRetry: _refresh);
                 }
-                final tasks = snapshot.data!;
-                if (tasks.isEmpty) {
+                final data = snapshot.data!;
+                if (data.tasks.isEmpty) {
                   return const EmptyView(
                       message: 'Keine Tasks in dieser Woche geplant.');
                 }
-                return _buildGrouped(tasks);
+                return _buildGrouped(data);
               },
             ),
           ),
@@ -164,4 +215,10 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
       ],
     );
   }
+}
+
+class _WochenplanData {
+  _WochenplanData({required this.tasks, required this.projects});
+  final List<Task> tasks;
+  final Map<String, Project> projects;
 }
