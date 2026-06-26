@@ -12,16 +12,24 @@ class TaskService {
     return '${d.year}-$m-$day';
   }
 
-  /// Tasks für ein bestimmtes Datum (planned_day = day), nicht erledigt.
+  /// Erledigte Tasks ans Ende schieben; Reihenfolge innerhalb der Gruppen
+  /// (offen / erledigt) bleibt erhalten.
+  static List<Task> _doneLast(List<Task> tasks) {
+    final open = tasks.where((t) => !t.isDone).toList();
+    final done = tasks.where((t) => t.isDone).toList();
+    return [...open, ...done];
+  }
+
+  /// Tasks für ein bestimmtes Datum (planned_day = day).
+  /// Erledigte bleiben sichtbar (durchgestrichen, ans Ende sortiert).
   Future<List<Task>> tasksForDay(DateTime day) async {
     final rows = await _client
         .from('tasks')
         .select()
         .eq('planned_day', _dateOnly(day))
-        .neq('status', 'done')
         .order('next_action', ascending: false)
         .order('size');
-    return rows.map<Task>((r) => Task.fromMap(r)).toList();
+    return _doneLast(rows.map<Task>((r) => Task.fromMap(r)).toList());
   }
 
   /// Offene Next Actions (next_action = true), unabhängig vom Tag.
@@ -35,16 +43,16 @@ class TaskService {
     return rows.map<Task>((r) => Task.fromMap(r)).toList();
   }
 
-  /// Tasks einer Kalenderwoche (planned_week), nicht erledigt.
+  /// Tasks einer Kalenderwoche (planned_week).
+  /// Erledigte bleiben sichtbar (durchgestrichen, ans Ende sortiert).
   Future<List<Task>> tasksForWeek(int week) async {
     final rows = await _client
         .from('tasks')
         .select()
         .eq('planned_week', week)
-        .neq('status', 'done')
         .order('planned_day', nullsFirst: false)
         .order('size');
-    return rows.map<Task>((r) => Task.fromMap(r)).toList();
+    return _doneLast(rows.map<Task>((r) => Task.fromMap(r)).toList());
   }
 
   /// Backlog: alles Offene ohne konkrete Tagesplanung.
