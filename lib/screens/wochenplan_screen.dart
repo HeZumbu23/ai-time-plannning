@@ -58,16 +58,62 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
     await _refresh();
   }
 
-  Future<void> _toggleNext(Task task) async {
-    await _service.setNextAction(task.id, !task.nextAction);
-    await _refresh();
-  }
-
   Future<void> _openDetail(Task task) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task)),
     );
     if (changed == true) await _refresh();
+  }
+
+  static const _weekdays = [
+    'Montag',
+    'Dienstag',
+    'Mittwoch',
+    'Donnerstag',
+    'Freitag',
+    'Samstag',
+    'Sonntag',
+  ];
+
+  static String _dayLabel(DateTime? d) {
+    if (d == null) return 'Ohne festen Tag';
+    final wd = _weekdays[d.weekday - 1];
+    return '$wd · ${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.';
+  }
+
+  /// Tasks nach Wochentag gruppiert (planned_day), mit Tages-Überschrift.
+  Widget _buildGrouped(List<Task> tasks) {
+    final groups = <DateTime?, List<Task>>{};
+    for (final t in tasks) {
+      final key = t.plannedDay == null
+          ? null
+          : DateTime(t.plannedDay!.year, t.plannedDay!.month, t.plannedDay!.day);
+      (groups[key] ??= []).add(t);
+    }
+    final keys = groups.keys.toList()
+      ..sort((a, b) {
+        if (a == null) return 1; // "ohne Tag" ans Ende
+        if (b == null) return -1;
+        return a.compareTo(b);
+      });
+
+    final children = <Widget>[];
+    for (final key in keys) {
+      children.add(SectionHeader(
+          _dayLabel(key), key == null ? Icons.inbox_outlined : Icons.event));
+      final list = groups[key]!;
+      for (var i = 0; i < list.length; i++) {
+        final t = list[i];
+        children.add(TaskTile(
+          task: t,
+          shaded: i.isOdd,
+          onTap: () => _openDetail(t),
+          onToggleDone: (v) => _toggleDone(t, v),
+        ));
+      }
+    }
+    children.add(const SizedBox(height: 24));
+    return ListView(children: children);
   }
 
   @override
@@ -110,16 +156,7 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
                   return const EmptyView(
                       message: 'Keine Tasks in dieser Woche geplant.');
                 }
-                return ListView.builder(
-                  itemCount: tasks.length,
-                  itemBuilder: (context, i) => TaskTile(
-                    task: tasks[i],
-                    shaded: i.isOdd,
-                    onTap: () => _openDetail(tasks[i]),
-                    onToggleDone: (v) => _toggleDone(tasks[i], v),
-                    onToggleNextAction: () => _toggleNext(tasks[i]),
-                  ),
-                );
+                return _buildGrouped(tasks);
               },
             ),
           ),

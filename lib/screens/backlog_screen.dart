@@ -34,11 +34,6 @@ class _BacklogScreenState extends State<BacklogScreen> {
     await _refresh();
   }
 
-  Future<void> _toggleNext(Task task) async {
-    await _service.setNextAction(task.id, !task.nextAction);
-    await _refresh();
-  }
-
   Future<void> _openDetail(Task task) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task)),
@@ -70,7 +65,6 @@ class _BacklogScreenState extends State<BacklogScreen> {
               shaded: i.isOdd,
               onTap: () => _openDetail(tasks[i]),
               onToggleDone: (v) => _toggleDone(tasks[i], v),
-              onToggleNextAction: () => _toggleNext(tasks[i]),
             ),
           );
         },

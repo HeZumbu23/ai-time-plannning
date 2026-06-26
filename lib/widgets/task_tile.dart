@@ -8,14 +8,12 @@ class TaskTile extends StatelessWidget {
     super.key,
     required this.task,
     required this.onToggleDone,
-    this.onToggleNextAction,
     this.onTap,
     this.shaded = false,
   });
 
   final Task task;
   final ValueChanged<bool> onToggleDone;
-  final VoidCallback? onToggleNextAction;
 
   /// Antippen der Zeile (öffnet z.B. die Detail-Seite).
   final VoidCallback? onTap;
@@ -50,23 +48,16 @@ class TaskTile extends StatelessWidget {
         ),
       ),
       subtitle: _buildSubtitle(theme),
-      trailing: onToggleNextAction == null
-          ? null
-          : IconButton(
-              visualDensity: VisualDensity.compact,
-              tooltip: 'Next Action',
-              icon: Icon(
-                task.nextAction ? Icons.bolt : Icons.bolt_outlined,
-                color: task.nextAction ? theme.colorScheme.primary : null,
-              ),
-              onPressed: onToggleNextAction,
-            ),
     );
   }
 
   Widget? _buildSubtitle(ThemeData theme) {
     final chips = <Widget>[];
 
+    // Next Action ist jetzt ein Attribut-Chip (Stern) wie size/context.
+    if (task.nextAction) {
+      chips.add(_Tag(label: '⭐', color: theme.colorScheme.primaryContainer));
+    }
     if (task.size != null) {
       chips.add(_Tag(label: task.size!));
     }
