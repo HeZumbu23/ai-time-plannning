@@ -1,11 +1,18 @@
+version: '3.8'
+
 services:
-  web:
-    build:
-      context: .
-      args:
-        # Aus der Umgebung / .env-Datei (nicht eingecheckt) ziehen
-        SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
-    image: todo-coaching-web
+  ai-time-planning:
+    image: ${REGISTRY:-localhost}/ai-time-planning:${TAG:-latest}
+    container_name: ai-time-planning
     ports:
-      - "8080:80"
+      - "${PORT:-8080}:80"
+    environment:
+      # Keine Umgebungsvariablen nötig - alles wird zur Build-Zeit konfiguriert
     restart: unless-stopped
+    # Optional: Health Check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
