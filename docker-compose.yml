@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  ai-time-planning:
+    image: ghcr.io/hezumbu23/ai-time-plannning:${TAG:-main}
+    container_name: ai-time-planning
+    ports:
+      - "${PORT:-8080}:80"
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:-https://vnfkkujtkbgkqafbbipj.supabase.co}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
