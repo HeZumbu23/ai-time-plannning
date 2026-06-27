@@ -7,6 +7,9 @@ import 'screens/home_shell.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Lade Config von window.appConfig (aus config.js)
+  SupabaseConfig.init();
+
   if (!SupabaseConfig.isConfigured) {
     runApp(const _ConfigErrorApp());
     return;

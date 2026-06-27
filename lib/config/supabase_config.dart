@@ -1,28 +1,45 @@
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'dart:js_interop';
+
 /// Supabase-Verbindungsdaten.
 ///
-/// Der Publishable-Key wird **nicht** im Code eingecheckt, sondern beim
-/// Build per `--dart-define` (bzw. CI-Variable / Docker build-arg) injiziert:
-///
-///   flutter run -d chrome --dart-define=SUPABASE_PUBLISHABLE_KEY=...
-///
-/// Alternativ gebündelt aus einer (gitignorierten) Datei:
-///   flutter run --dart-define-from-file=dart_defines.json
-///
-/// Hinweis: In einer Client-App landet der Key am Ende ohnehin sichtbar im
-/// ausgelieferten Bundle – der eigentliche Schutz muss über RLS kommen.
-/// Das Auslagern hier verhindert nur, dass der Key im Git-Repo liegt.
+/// Werden zur Runtime von config.js gelesen (injiziert vom docker-entrypoint.sh).
+/// Das ermöglicht, die Umgebungsvariablen im Portainer zu konfigurieren.
 class SupabaseConfig {
   SupabaseConfig._();
 
-  /// Die Projekt-URL ist nicht geheim und darf einen Default haben.
-  static const String url = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: 'https://vnfkkujtkbgkqafbbipj.supabase.co',
-  );
+  static late final String url;
+  static late final String anonKey;
 
-  /// Kein Default – wird zur Build-Zeit gesetzt. Heißt SDK-seitig weiterhin
-  /// `anonKey`, hält aber den modernen Publishable Key (`sb_publishable_…`).
-  static const String anonKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+  /// Initialisierung: Lese Config von window.appConfig (aus config.js)
+  static void init() {
+    final config = _getWindowConfig();
+    url = config['supabaseUrl'] ?? 'https://vnfkkujtkbgkqafbbipj.supabase.co';
+    anonKey = config['supabaseAnonKey'] ?? '';
+  }
+
+  static Map<String, String> _getWindowConfig() {
+    try {
+      final jsConfig = _getAppConfig();
+      return {
+        'supabaseUrl': jsConfig.supabaseUrl ?? '',
+        'supabaseAnonKey': jsConfig.supabaseAnonKey ?? '',
+      };
+    } catch (e) {
+      print('Fehler beim Lesen von config.js: $e');
+      return {};
+    }
+  }
 
   static bool get isConfigured => url.isNotEmpty && anonKey.isNotEmpty;
+}
+
+@JS('window.appConfig')
+external AppConfig _getAppConfig();
+
+@JS()
+@staticInterop
+class AppConfig {
+  external String? get supabaseUrl;
+  external String? get supabaseAnonKey;
 }
