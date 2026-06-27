@@ -1,49 +1,22 @@
-# AI Time Planning - Deployment auf Portainer
+# Portainer Web Editor Deployment
 
-## Voraussetzungen
-- Portainer installiert und laufend
-- Docker auf dem Host verfügbar
-- Zugang zum Portainer Dashboard
-- Die `SUPABASE_PUBLISHABLE_KEY` verfügbar
+Alle Konfiguration erfolgt direkt im Portainer Web Editor. **Keine Dateien im Repo nötig.**
 
-## Schritt 1: Docker Image bauen
+## Schritt 1: Im Portainer Dashboard
 
-### Option A: Lokal bauen und zu Registry pushen
-```bash
-# Lokal bauen
-docker build \
-  --build-arg SUPABASE_PUBLISHABLE_KEY="your-publishable-key-here" \
-  -t ai-time-planning:latest .
+1. **Stacks → Add Stack**
+2. **Paste or Load Stack file** → Web Editor
 
-# Optional: Zu Registry pushen (wenn du externe Registry nutzt)
-docker tag ai-time-planning:latest your-registry/ai-time-planning:latest
-docker push your-registry/ai-time-planning:latest
-```
+## Schritt 2: Compose-Datei in Web Editor
 
-### Option B: Über Portainer bauen
-1. Gehe zu **Portainer Dashboard → Stacks**
-2. Klick **Add Stack**
-3. **Stack Name**: `ai-time-planning`
-4. **Build Method**: "Upload" oder "Git Repository"
-5. Upload das gesamte Projekt oder verbinde mit Git
-6. Unter "Environment Variables" folgende Variablen hinzufügen:
-   ```
-   SUPABASE_PUBLISHABLE_KEY=your-key-here
-   PORT=8080
-   REGISTRY=localhost
-   TAG=latest
-   ```
+Kopiere diese docker-compose.yml in den Web Editor und füge deine Werte ein:
 
-## Schritt 2: Portainer Web Editor
-
-### Option 1: docker-compose.yml verwenden
-1. **Portainer → Stacks → Add Stack**
-2. **Paste or Load Stack file**:
 ```yaml
 version: '3.8'
+
 services:
   ai-time-planning:
-    image: ${REGISTRY:-localhost}/ai-time-planning:${TAG:-latest}
+    image: localhost/ai-time-planning:${TAG:-latest}
     container_name: ai-time-planning
     ports:
       - "${PORT:-8080}:80"
@@ -53,73 +26,83 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
 ```
 
-3. **Environment variables** konfigurieren:
-   - `REGISTRY`: z.B. `my-registry.com` oder `localhost`
-   - `TAG`: z.B. `latest` oder `v1.0.0`
-   - `PORT`: z.B. `8080` (Port, unter dem die App erreichbar ist)
+## Schritt 3: Environment Variables im Portainer
 
-4. **Deploy** klicken
+Unter der Compose-Datei findest du **"Environment"** Feld:
 
-## Schritt 3: App testen
-- Öffne: `http://localhost:8080` (oder `http://your-server-ip:8080`)
+```
+PORT=8080
+TAG=latest
+SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### Variablen erklärt
+
+| Variable | Beispiel | Erklärung |
+|----------|----------|-----------|
+| `PORT` | `8080` | Port, unter dem die App erreichbar ist |
+| `TAG` | `latest` oder `v1.0.0` | Docker Image Tag |
+| `SUPABASE_PUBLISHABLE_KEY` | `eyJ...` | Dein Supabase Public Key (Build-Time!) |
+
+## Schritt 4: Image vorbereiten
+
+Bevor du im Portainer deployst, baue das Docker Image lokal:
+
+```bash
+# Mit deinem Supabase Key
+docker build \
+  --build-arg SUPABASE_PUBLISHABLE_KEY="your-key-here" \
+  -t ai-time-planning:latest .
+
+# Oder mit Tag
+docker build \
+  --build-arg SUPABASE_PUBLISHABLE_KEY="your-key-here" \
+  -t ai-time-planning:v1.0.0 .
+```
+
+Das Image muss lokal oder in einer Registry verfügbar sein (z.B. für `localhost/ai-time-planning`).
+
+## Schritt 5: Deploy
+
+1. **Environment variables** eingetragen? ✓
+2. **TAG** entspricht deinem Image? ✓
+3. **Deploy** klicken
+
+## App testen
+
+- `http://localhost:8080` öffnen
 - Sollte die Flutter Web App laden
 
-## Umgebungsvariablen
+## Updates
 
-| Variable | Standard | Beschreibung |
-|----------|----------|-------------|
-| `REGISTRY` | `localhost` | Container Registry (für Images) |
-| `TAG` | `latest` | Image-Tag |
-| `PORT` | `8080` | Expose Port |
+Wenn du änderungen machst:
 
-## Wichtige Notizen
-
-⚠️ **SUPABASE_PUBLISHABLE_KEY**
-- Dies ist eine **Build-Time** Variable
-- Sie wird in das Image kompiliert (nicht zur Runtime injiziert)
-- Um die Key zu ändern, musst du ein **neues Image bauen**
-
-✅ **Performance-Features**
-- Nginx mit Gzip-Kompression
-- Smart Caching für Assets (1 Jahr für gehashte Dateien)
-- Service Worker Support für PWA
-
-## Troubleshooting
-
-### Container startet nicht
-```bash
-# Logs anschauen (in Portainer)
-# Oder per CLI:
-docker logs ai-time-planning
-```
-
-### App lädt nicht
-- Prüfe: `http://localhost:8080/`
-- Browser Console prüfen (F12)
-- Nginx logs: `docker exec ai-time-planning cat /var/log/nginx/error.log`
-
-### Build schlägt fehl
-- Flutter dependency Fehler? → `flutter pub get` im Container
-- Supabase Key fehlt? → Build arg prüfen
-
-## Updates deployen
-
-1. Baue neues Image:
+1. Neues Image bauen:
 ```bash
 docker build \
   --build-arg SUPABASE_PUBLISHABLE_KEY="your-key" \
   -t ai-time-planning:v1.0.1 .
 ```
 
-2. In Portainer:
-   - Stack updaten
-   - `TAG=v1.0.1` setzen
-   - Re-deploy
+2. Im Portainer:
+   - Stack öffnen
+   - `TAG=v1.0.1` ändern
+   - **Update** klicken
 
-## Weiterführend
+## Troubleshooting
 
-- **Nginx Config**: `nginx.conf`
-- **Docker Multi-Stage Build**: `Dockerfile`
-- **Flutter Web Docs**: https://flutter.dev/docs/get-started/web
+**Container startet nicht?**
+```bash
+docker logs ai-time-planning
+```
+
+**App lädt nicht?**
+- Browser Console (F12) prüfen
+- `http://localhost:8080/` im Browser aufrufen
+
+**Build Error?**
+- `SUPABASE_PUBLISHABLE_KEY` prüfen
+- Flutter Dependencies: `flutter pub get`
