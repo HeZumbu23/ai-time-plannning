@@ -1,25 +1,16 @@
-# Portainer Deployment mit GitHub Actions
+# Portainer Deployment mit GitHub Actions + Runtime Config
 
-Das Docker Image wird automatisch durch GitHub Actions gebaut und zu ghcr.io gepusht. **Kein lokales Bauen nötig!**
+Das Docker Image wird automatisch durch GitHub Actions gebaut. Umgebungsvariablen werden **zur Runtime** injiziert - können also im Portainer ohne Rebuild geändert werden!
 
 ## Setup (einmalig)
 
-### 1. GitHub Secret hinzufügen
+### 1. GitHub Secret hinzufügen (optional für GitHub Actions)
 
-GitHub Repo → **Settings → Secrets and variables → Actions**
+Falls du GitHub Actions verwendest:
+- GitHub Repo → **Settings → Secrets and variables → Actions**
+- Neues Secret: `SUPABASE_PUBLISHABLE_KEY` = Dein Supabase Key
 
-Neues Secret hinzufügen:
-- **Name**: `SUPABASE_PUBLISHABLE_KEY`
-- **Value**: Dein Supabase Public Key (z.B. `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`)
-
-Das war's! GitHub Actions nutzt dieses Secret automatisch beim Build.
-
-### 2. GitHub Container Registry Token (optional, für private Repos)
-
-Falls dein Repo privat ist, brauchst du einen PAT:
-- GitHub → **Settings → Developer settings → Personal access tokens → Tokens (classic)**
-- Scope: `write:packages`, `read:packages`
-- Token kopieren und im Repo Secret speichern
+**Hinweis:** Das Secret ist optional - du kannst die Umgebungsvariablen auch direkt im Portainer setzen!
 
 ## Deployment in Portainer
 
@@ -38,6 +29,9 @@ services:
     container_name: ai-time-planning
     ports:
       - "${PORT:-8080}:80"
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:-https://vnfkkujtkbgkqafbbipj.supabase.co}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
@@ -53,73 +47,77 @@ Unter dem Editor, im **Environment** Feld:
 ```
 PORT=8080
 TAG=main
+SUPABASE_URL=https://vnfkkujtkbgkqafbbipj.supabase.co
+SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
+
+**Wo bekommst du die Keys?**
+- Supabase Dashboard → **Project Settings → API**
+- `supabaseUrl`: Die Projekt-URL (z.B. `https://vnfkkujtkbgkqafbbipj.supabase.co`)
+- `SUPABASE_PUBLISHABLE_KEY`: Der `anon` Public Key (beginnt mit `eyJ...` oder `sb_publishable_...`)
 
 ### Schritt 3: Deploy
 
-Klick **Deploy** → App lädt automatisch die neueste Version von ghcr.io
+Klick **Deploy** → App startet und lädt die Config aus den Env-Variablen ✅
+
+## Updates der Config
+
+**Umgebungsvariablen ändern (z.B. neuer Supabase Key):**
+
+1. Im Portainer: Stack öffnen
+2. **Edit Stack** oder **Update Stack**
+3. Im **Environment** Feld ändern (z.B. `SUPABASE_PUBLISHABLE_KEY=neue-key`)
+4. **Update** oder **Deploy** klicken
+
+Das war's! Kein Rebuild nötig! 🚀
 
 ## Image Tags
 
-GitHub Actions erzeugt automatisch Tags:
+GitHub Actions erzeugt automatisch:
 
 | Trigger | Tag |
 |---------|-----|
 | Push zu `main` | `ghcr.io/.../ai-time-plannning:main` |
-| Tag `v1.0.0` | `ghcr.io/.../ai-time-plannning:v1.0.0`, `1.0`, `latest` |
-| Commit SHA | `ghcr.io/.../ai-time-plannning:main-abc1234` |
+| Tag `v1.0.0` | `ghcr.io/.../ai-time-plannning:v1.0.0` |
+| Commit SHA | `ghcr.io/.../ai-time-plannning:main-abc123` |
 
-## Workflow mit Updates
+## Workflow
 
-1. **Code ändern** → Git Push zu main
-2. **GitHub Actions** baut automatisch das Image
-3. **In Portainer**: Stack updaten
-   - `TAG=main` bleibt gleich (oder `TAG=v1.0.0` für Release)
-   - **Update** klicken → zieht neue Version
-
-Das war's! 🚀
+1. **Env-Var im Portainer ändern** → Update Stack
+2. Container startet neu mit neuer Config
+3. `docker-entrypoint.sh` generiert neue `config.js`
+4. Flutter App lädt neue Config
 
 ## Troubleshooting
 
-**Build schlägt fehl?**
-- GitHub Repo → **Actions** → Workflow Log prüfen
-- Meist: `SUPABASE_PUBLISHABLE_KEY` Secret nicht gesetzt
+**App zeigt weißen Bildschirm?**
+- Browser Console öffnen (F12)
+- Prüfen ob `config.js` geladen wurde
+- Prüfen ob `SUPABASE_PUBLISHABLE_KEY` gesetzt ist
 
-**Image ist nicht erreichbar?**
-- Repo muss **Public** sein (oder PAT mit `read:packages`)
-- Warte ~1 min nach Push, bis Image verfügbar ist
+**Image nicht erreichbar?**
+- Repo muss **Public** sein (oder GitHub PAT)
+- Warte ~1 min nach GitHub Actions Build
 
-**Portainer findet Image nicht?**
-```bash
-# Im Portainer Container Shell:
-docker pull ghcr.io/hezumbu23/ai-time-plannning:main
+**Supabase Fehler?**
+- `SUPABASE_PUBLISHABLE_KEY` prüfen (sollte nicht leer sein)
+- `SUPABASE_URL` prüfen
+
+## Logs prüfen
+
+Im Portainer: Container Logs anschauen
 ```
-
-## GitHub Actions Workflow
-
-Die Workflow Datei: `.github/workflows/docker-build.yml`
-
-Baut automatisch auf:
-- ✅ Push zu `main`
-- ✅ Git Tags (`v*`)
-- ✅ Manual Trigger (Actions UI)
-
-## Weitere Optionen
-
-### Specific Port in Portainer
-```yaml
-# In Portainer Environment:
-PORT=3000
-TAG=main
+Config generated:
+window.appConfig = {
+  supabaseUrl: 'https://...',
+  supabaseAnonKey: 'eyJ...'
+}
 ```
-
-### Mit Private Registry (falls gewünscht)
-Ersetze `ghcr.io` mit deiner Registry (z.B. Docker Hub, Harbor, etc.)
 
 ---
 
 **Zusammengefasst:**
-- ✅ GitHub Actions baut → ghcr.io pusht
-- ✅ Portainer pullt von ghcr.io
-- ✅ Environment Vars im Portainer editieren
-- ✅ Keine lokalen Builds nötig
+- ✅ GitHub Actions baut automatisch
+- ✅ Config wird zur Runtime injiziert
+- ✅ Umgebungsvariablen im Portainer editierbar
+- ✅ Kein Rebuild für neue Keys nötig
