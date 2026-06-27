@@ -1,22 +1,40 @@
-# Portainer Web Editor Deployment
+# Portainer Deployment mit GitHub Actions
 
-Alle Konfiguration erfolgt direkt im Portainer Web Editor. **Keine Dateien im Repo nötig.**
+Das Docker Image wird automatisch durch GitHub Actions gebaut und zu ghcr.io gepusht. **Kein lokales Bauen nötig!**
 
-## Schritt 1: Im Portainer Dashboard
+## Setup (einmalig)
 
-1. **Stacks → Add Stack**
-2. **Paste or Load Stack file** → Web Editor
+### 1. GitHub Secret hinzufügen
 
-## Schritt 2: Compose-Datei in Web Editor
+GitHub Repo → **Settings → Secrets and variables → Actions**
 
-Kopiere diese docker-compose.yml in den Web Editor und füge deine Werte ein:
+Neues Secret hinzufügen:
+- **Name**: `SUPABASE_PUBLISHABLE_KEY`
+- **Value**: Dein Supabase Public Key (z.B. `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`)
+
+Das war's! GitHub Actions nutzt dieses Secret automatisch beim Build.
+
+### 2. GitHub Container Registry Token (optional, für private Repos)
+
+Falls dein Repo privat ist, brauchst du einen PAT:
+- GitHub → **Settings → Developer settings → Personal access tokens → Tokens (classic)**
+- Scope: `write:packages`, `read:packages`
+- Token kopieren und im Repo Secret speichern
+
+## Deployment in Portainer
+
+### Schritt 1: Im Portainer Web Editor
+
+**Stacks → Add Stack → Web Editor**
+
+Kopiere diese docker-compose.yml:
 
 ```yaml
 version: '3.8'
 
 services:
   ai-time-planning:
-    image: localhost/ai-time-planning:${TAG:-latest}
+    image: ghcr.io/hezumbu23/ai-time-plannning:${TAG:-main}
     container_name: ai-time-planning
     ports:
       - "${PORT:-8080}:80"
@@ -26,83 +44,82 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
 ```
 
-## Schritt 3: Environment Variables im Portainer
+### Schritt 2: Environment Variables
 
-Unter der Compose-Datei findest du **"Environment"** Feld:
+Unter dem Editor, im **Environment** Feld:
 
 ```
 PORT=8080
-TAG=latest
-SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+TAG=main
 ```
 
-### Variablen erklärt
+### Schritt 3: Deploy
 
-| Variable | Beispiel | Erklärung |
-|----------|----------|-----------|
-| `PORT` | `8080` | Port, unter dem die App erreichbar ist |
-| `TAG` | `latest` oder `v1.0.0` | Docker Image Tag |
-| `SUPABASE_PUBLISHABLE_KEY` | `eyJ...` | Dein Supabase Public Key (Build-Time!) |
+Klick **Deploy** → App lädt automatisch die neueste Version von ghcr.io
 
-## Schritt 4: Image vorbereiten
+## Image Tags
 
-Bevor du im Portainer deployst, baue das Docker Image lokal:
+GitHub Actions erzeugt automatisch Tags:
 
-```bash
-# Mit deinem Supabase Key
-docker build \
-  --build-arg SUPABASE_PUBLISHABLE_KEY="your-key-here" \
-  -t ai-time-planning:latest .
+| Trigger | Tag |
+|---------|-----|
+| Push zu `main` | `ghcr.io/.../ai-time-plannning:main` |
+| Tag `v1.0.0` | `ghcr.io/.../ai-time-plannning:v1.0.0`, `1.0`, `latest` |
+| Commit SHA | `ghcr.io/.../ai-time-plannning:main-abc1234` |
 
-# Oder mit Tag
-docker build \
-  --build-arg SUPABASE_PUBLISHABLE_KEY="your-key-here" \
-  -t ai-time-planning:v1.0.0 .
-```
+## Workflow mit Updates
 
-Das Image muss lokal oder in einer Registry verfügbar sein (z.B. für `localhost/ai-time-planning`).
+1. **Code ändern** → Git Push zu main
+2. **GitHub Actions** baut automatisch das Image
+3. **In Portainer**: Stack updaten
+   - `TAG=main` bleibt gleich (oder `TAG=v1.0.0` für Release)
+   - **Update** klicken → zieht neue Version
 
-## Schritt 5: Deploy
-
-1. **Environment variables** eingetragen? ✓
-2. **TAG** entspricht deinem Image? ✓
-3. **Deploy** klicken
-
-## App testen
-
-- `http://localhost:8080` öffnen
-- Sollte die Flutter Web App laden
-
-## Updates
-
-Wenn du änderungen machst:
-
-1. Neues Image bauen:
-```bash
-docker build \
-  --build-arg SUPABASE_PUBLISHABLE_KEY="your-key" \
-  -t ai-time-planning:v1.0.1 .
-```
-
-2. Im Portainer:
-   - Stack öffnen
-   - `TAG=v1.0.1` ändern
-   - **Update** klicken
+Das war's! 🚀
 
 ## Troubleshooting
 
-**Container startet nicht?**
+**Build schlägt fehl?**
+- GitHub Repo → **Actions** → Workflow Log prüfen
+- Meist: `SUPABASE_PUBLISHABLE_KEY` Secret nicht gesetzt
+
+**Image ist nicht erreichbar?**
+- Repo muss **Public** sein (oder PAT mit `read:packages`)
+- Warte ~1 min nach Push, bis Image verfügbar ist
+
+**Portainer findet Image nicht?**
 ```bash
-docker logs ai-time-planning
+# Im Portainer Container Shell:
+docker pull ghcr.io/hezumbu23/ai-time-plannning:main
 ```
 
-**App lädt nicht?**
-- Browser Console (F12) prüfen
-- `http://localhost:8080/` im Browser aufrufen
+## GitHub Actions Workflow
 
-**Build Error?**
-- `SUPABASE_PUBLISHABLE_KEY` prüfen
-- Flutter Dependencies: `flutter pub get`
+Die Workflow Datei: `.github/workflows/docker-build.yml`
+
+Baut automatisch auf:
+- ✅ Push zu `main`
+- ✅ Git Tags (`v*`)
+- ✅ Manual Trigger (Actions UI)
+
+## Weitere Optionen
+
+### Specific Port in Portainer
+```yaml
+# In Portainer Environment:
+PORT=3000
+TAG=main
+```
+
+### Mit Private Registry (falls gewünscht)
+Ersetze `ghcr.io` mit deiner Registry (z.B. Docker Hub, Harbor, etc.)
+
+---
+
+**Zusammengefasst:**
+- ✅ GitHub Actions baut → ghcr.io pusht
+- ✅ Portainer pullt von ghcr.io
+- ✅ Environment Vars im Portainer editieren
+- ✅ Keine lokalen Builds nötig
