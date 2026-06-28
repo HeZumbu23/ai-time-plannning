@@ -29,7 +29,7 @@ jobs:
           channel: 'stable'
 
       - name: Generate Android scaffold
-        run: flutter create --platforms=android --org de.kerch .
+        run: flutter create --platforms=android --org de.kerch --project-name ai_time_planning .
 
       - name: Add INTERNET permission to release manifest
         run: |
