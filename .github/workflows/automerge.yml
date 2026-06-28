@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: automerge-main
@@ -31,8 +32,33 @@ jobs:
               -m "Auto-merge ${GITHUB_REF_NAME} into main"; then
             git push origin main
             echo "✅ ${GITHUB_REF_NAME} nach main gemergt."
+            echo "MERGE_SUCCESS=true" >> $GITHUB_ENV
           else
             echo "::error::Merge-Konflikt – manueller Merge nötig."
             git merge --abort
             exit 1
           fi
+
+      - name: Trigger Android Build
+        if: env.MERGE_SUCCESS == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'android-build.yml',
+              ref: 'main'
+            });
+
+      - name: Trigger Docker Build
+        if: env.MERGE_SUCCESS == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'docker-build.yml',
+              ref: 'main'
+            });
