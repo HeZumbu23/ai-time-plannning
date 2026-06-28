@@ -39,26 +39,3 @@ jobs:
             exit 1
           fi
 
-      - name: Trigger Android Build
-        if: env.MERGE_SUCCESS == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'android-build.yml',
-              ref: 'main'
-            });
-
-      - name: Trigger Docker Build
-        if: env.MERGE_SUCCESS == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'docker-build.yml',
-              ref: 'main'
-            });
