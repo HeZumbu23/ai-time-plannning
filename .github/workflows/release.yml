@@ -1,0 +1,51 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "version=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Create Web Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ai-time-planning-web-${{ steps.version.outputs.version }}
+          body: |
+            # Web Release: ${{ steps.version.outputs.version }}
+            
+            **Docker Image:**
+            ```
+            docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+            ```
+            
+            **Web App:**
+            - Erhältlich auf: https://nas.pc:8059
+            - Image: ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+            
+            ## Deploy mit Portainer:
+            ```yaml
+            image: ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+            environment:
+              SUPABASE_PUBLISHABLE_KEY: <your-key>
+            ```
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
