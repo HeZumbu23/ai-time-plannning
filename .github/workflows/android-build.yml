@@ -19,14 +19,11 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          flutter-version: '3.24.0'
           channel: 'stable'
 
       - name: Get Flutter dependencies
         run: flutter pub get
-
-      - name: Build Flutter web (for config.js generation)
-        run: flutter config --enable-web
 
       - name: Build Android APK
         run: flutter build apk --release \
