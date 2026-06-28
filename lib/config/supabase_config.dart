@@ -35,17 +35,34 @@ class SupabaseConfig {
 
   static Future<void> _loadWebConfig() async {
     try {
-      final response = await http.get(Uri.parse('/config.json'));
+      print('⏳ Loading config.json from server...');
+      final uri = Uri.parse('/config.json');
+      print('📍 Request URI: $uri');
+
+      final response = await http.get(uri).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          print('✗ Config request timeout');
+          throw Exception('Config request timeout');
+        },
+      );
+
+      print('📬 Response status: ${response.statusCode}');
+      print('📬 Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final config = jsonDecode(response.body);
         url = config['supabaseUrl'] ?? 'https://vnfkkujtkbgkqafbbipj.supabase.co';
         anonKey = config['supabaseAnonKey'] ?? '';
         print('✓ Config loaded: $url');
+        print('✓ Anon key loaded: ${anonKey.isNotEmpty ? 'yes' : 'EMPTY'}');
       } else {
         print('✗ Config not found (HTTP ${response.statusCode})');
+        print('✗ Response body: ${response.body}');
       }
-    } catch (e) {
+    } catch (e, stack) {
       print('✗ Config load error: $e');
+      print('✗ Stack trace: $stack');
     }
   }
 
