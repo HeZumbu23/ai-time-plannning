@@ -30,7 +30,7 @@ jobs:
 
       - name: Build Android APK
         run: flutter build apk --release \
-          --dart-define=SUPABASE_PUBLISHABLE_KEY="${{ secrets.SUPABASE_PUBLISHABLE_KEY }}"
+          --dart-define=SUPABASE_PUBLISHABLE_KEY="${{ vars.SUPABASE_PUBLISHABLE_KEY }}"
 
       - name: Extract version
         id: version
