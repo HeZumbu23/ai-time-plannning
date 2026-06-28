@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 /// Supabase-Verbindungsdaten.
-///
+/// 
 /// Web: Lädt config.json (generiert von docker-entrypoint.sh)
 /// Android: Nutzt hardcoded Werte
 class SupabaseConfig {

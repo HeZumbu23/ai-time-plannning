@@ -25,6 +25,9 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
+      - name: Build Flutter web (for config.js generation)
+        run: flutter config --enable-web
+
       - name: Build Android APK
         run: flutter build apk --release \
           --dart-define=SUPABASE_PUBLISHABLE_KEY="${{ secrets.SUPABASE_PUBLISHABLE_KEY }}"
