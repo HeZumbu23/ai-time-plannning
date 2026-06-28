@@ -78,6 +78,16 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
     if (changed == true) await _refresh();
   }
 
+  Future<void> _createNewTask() async {
+    final newTask = Task(
+      id: '',
+      title: '',
+      status: 'open',
+      plannedWeek: _week,
+    );
+    await _openDetail(newTask);
+  }
+
   static const _weekdays = [
     'Montag',
     'Dienstag',
@@ -169,50 +179,46 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () => _changeWeek(-1),
-              ),
-              Text('Kalenderwoche $_week',
-                  style: Theme.of(context).textTheme.titleMedium),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () => _changeWeek(1),
-              ),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Kalenderwoche $_week'),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left),
+          onPressed: () => _changeWeek(-1),
         ),
-        const Divider(height: 1),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _refresh,
-            child: FutureBuilder<_WochenplanData>(
-              future: _future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return ErrorView(error: snapshot.error!, onRetry: _refresh);
-                }
-                final data = snapshot.data!;
-                if (data.tasks.isEmpty) {
-                  return const EmptyView(
-                      message: 'Keine Tasks in dieser Woche geplant.');
-                }
-                return _buildGrouped(data);
-              },
-            ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: () => _changeWeek(1),
           ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: FutureBuilder<_WochenplanData>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return ErrorView(error: snapshot.error!, onRetry: _refresh);
+            }
+            final data = snapshot.data!;
+            if (data.tasks.isEmpty) {
+              return const EmptyView(
+                  message: 'Keine Tasks in dieser Woche geplant.');
+            }
+            return _buildGrouped(data);
+          },
         ),
-      ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _createNewTask,
+        tooltip: 'Neue Task',
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }

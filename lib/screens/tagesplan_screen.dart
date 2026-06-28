@@ -54,6 +54,16 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
     if (changed == true) await _refresh();
   }
 
+  Future<void> _createNewTask() async {
+    final newTask = Task(
+      id: '',
+      title: '',
+      status: 'open',
+      plannedDay: DateTime.now(),
+    );
+    await _openDetail(newTask);
+  }
+
   // Bevorzugte Reihenfolge der Kontexte; Unbekanntes danach, "ohne" ganz hinten.
   static const _contextOrder = ['büro', 'stadt', 'samstag', 'sonntag', 'flexibel'];
 
@@ -135,24 +145,31 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: _refresh,
-      child: FutureBuilder<_TagesplanData>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return ErrorView(error: snapshot.error!, onRetry: _refresh);
-          }
-          final data = snapshot.data!;
-          if (data.tasks.isEmpty) {
-            return const EmptyView(
-                message: 'Heute nichts geplant. Genieß den Tag! 🎉');
-          }
-          return _buildGrouped(data);
-        },
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: FutureBuilder<_TagesplanData>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return ErrorView(error: snapshot.error!, onRetry: _refresh);
+            }
+            final data = snapshot.data!;
+            if (data.tasks.isEmpty) {
+              return const EmptyView(
+                  message: 'Heute nichts geplant. Genieß den Tag! 🎉');
+            }
+            return _buildGrouped(data);
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _createNewTask,
+        tooltip: 'Neue Task',
+        child: const Icon(Icons.add),
       ),
     );
   }

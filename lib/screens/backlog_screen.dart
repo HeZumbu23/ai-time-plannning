@@ -51,6 +51,15 @@ class _BacklogScreenState extends State<BacklogScreen> {
     if (changed == true) await _refresh();
   }
 
+  Future<void> _createNewTask() async {
+    final newTask = Task(
+      id: '',
+      title: '',
+      status: 'open',
+    );
+    await _openDetail(newTask);
+  }
+
   Widget _buildGrouped(_BacklogData data) {
     final theme = Theme.of(context);
 
@@ -131,23 +140,30 @@ class _BacklogScreenState extends State<BacklogScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: _refresh,
-      child: FutureBuilder<_BacklogData>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return ErrorView(error: snapshot.error!, onRetry: _refresh);
-          }
-          final data = snapshot.data!;
-          if (data.tasks.isEmpty) {
-            return const EmptyView(message: 'Backlog ist leer. 📭');
-          }
-          return _buildGrouped(data);
-        },
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: FutureBuilder<_BacklogData>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return ErrorView(error: snapshot.error!, onRetry: _refresh);
+            }
+            final data = snapshot.data!;
+            if (data.tasks.isEmpty) {
+              return const EmptyView(message: 'Backlog ist leer. 📭');
+            }
+            return _buildGrouped(data);
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _createNewTask,
+        tooltip: 'Neue Task',
+        child: const Icon(Icons.add),
       ),
     );
   }

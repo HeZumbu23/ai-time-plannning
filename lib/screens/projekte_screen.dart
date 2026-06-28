@@ -37,38 +37,57 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
     ));
   }
 
+  Future<void> _createNewProject() async {
+    final newProject = Project(
+      id: '',
+      name: '',
+    );
+    // Öffne Detail-Dialog für neues Projekt
+    // (würde ProjectDetailScreen mit edit-Modus brauchen)
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Neue Projekte müssen noch implementiert werden')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: _refresh,
-      child: FutureBuilder<List<Project>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return ErrorView(error: snapshot.error!, onRetry: _refresh);
-          }
-          final projects = snapshot.data!;
-          if (projects.isEmpty) {
-            return const EmptyView(message: 'Noch keine Projekte angelegt.');
-          }
-          return ListView.builder(
-            itemCount: projects.length,
-            itemBuilder: (context, i) {
-              final p = projects[i];
-              return ListTile(
-                leading: Text(p.icon ?? '📁',
-                    style: const TextStyle(fontSize: 22)),
-                title: Text(p.name),
-                subtitle: p.goal != null ? Text(p.goal!) : null,
-                trailing: _StatusChip(status: p.status),
-                onTap: () => _openProject(p),
-              );
-            },
-          );
-        },
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: FutureBuilder<List<Project>>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return ErrorView(error: snapshot.error!, onRetry: _refresh);
+            }
+            final projects = snapshot.data!;
+            if (projects.isEmpty) {
+              return const EmptyView(message: 'Noch keine Projekte angelegt.');
+            }
+            return ListView.builder(
+              itemCount: projects.length,
+              itemBuilder: (context, i) {
+                final p = projects[i];
+                return ListTile(
+                  leading: Text(p.icon ?? '📁',
+                      style: const TextStyle(fontSize: 22)),
+                  title: Text(p.name),
+                  subtitle: p.goal != null ? Text(p.goal!) : null,
+                  trailing: _StatusChip(status: p.status),
+                  onTap: () => _openProject(p),
+                );
+              },
+            );
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _createNewProject,
+        tooltip: 'Neues Projekt',
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -132,6 +151,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     if (changed == true) await _refresh();
   }
 
+  Future<void> _createNewTask() async {
+    final newTask = Task(
+      id: '',
+      title: '',
+      status: 'open',
+      projectId: widget.project.id,
+    );
+    await _openDetail(newTask);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,6 +194,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             );
           },
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _createNewTask,
+        tooltip: 'Neue Task',
+        child: const Icon(Icons.add),
       ),
     );
   }
