@@ -20,13 +20,17 @@ class SupabaseConfig {
     }
   }
 
+  /// Warte auf asynchrones Laden (z.B. config.json für Web)
+  static Future<void> waitForConfig() async {
+    if (kIsWeb) {
+      await _loadWebConfig();
+    }
+  }
+
   static void _initWeb() {
-    // Für Web: config.json wird von docker-entrypoint.sh generiert
+    // Für Web: Setze Defaults, config.json wird später geladen
     url = 'https://vnfkkujtkbgkqafbbipj.supabase.co';
     anonKey = '';
-    
-    // Versuche config.json zu laden (asynchron später)
-    _loadWebConfig();
   }
 
   static Future<void> _loadWebConfig() async {
@@ -36,9 +40,12 @@ class SupabaseConfig {
         final config = jsonDecode(response.body);
         url = config['supabaseUrl'] ?? 'https://vnfkkujtkbgkqafbbipj.supabase.co';
         anonKey = config['supabaseAnonKey'] ?? '';
+        print('✓ Config loaded: $url');
+      } else {
+        print('✗ Config not found (HTTP ${response.statusCode})');
       }
     } catch (e) {
-      print('Config load error: $e');
+      print('✗ Config load error: $e');
     }
   }
 

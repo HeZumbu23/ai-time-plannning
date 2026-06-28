@@ -7,8 +7,11 @@ import 'screens/home_shell.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lade Config von window.appConfig (aus config.js)
+  // Lade Config (sync für Android, dann async für Web)
   SupabaseConfig.init();
+
+  // Warte auf async config load (z.B. config.json für Web)
+  await SupabaseConfig.waitForConfig();
 
   if (!SupabaseConfig.isConfigured) {
     runApp(const _ConfigErrorApp());
