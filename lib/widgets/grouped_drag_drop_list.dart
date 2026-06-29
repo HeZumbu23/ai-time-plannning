@@ -145,6 +145,8 @@ class _GroupedDragDropListState<K>
               style:
                   theme.textTheme.labelSmall?.copyWith(color: onHeader),
             ),
+            // "+" links vom Expand-Icon platzieren (nicht im trailing, da sonst
+            // zu nah am Expand-Pfeil). Stattdessen im title mit Right-Align.
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -152,7 +154,7 @@ class _GroupedDragDropListState<K>
                   icon: Icon(Icons.add, size: 20, color: onHeader),
                   onPressed: () => widget.onAddTask(group.key),
                   visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
+                  padding: const EdgeInsets.only(right: 16),
                   tooltip: 'Task hinzufügen',
                 ),
                 Icon(Icons.expand_more, color: onHeader, size: 18),
@@ -174,32 +176,94 @@ class _GroupedDragDropListState<K>
                 )
               else
                 for (final (i, task) in visibleTasks.indexed)
-                  Draggable<Task>(
-                    data: task,
-                    feedback: _DragFeedback(task: task, theme: theme),
-                    childWhenDragging: Opacity(
-                      opacity: 0.35,
-                      child: TaskTile(
-                        task: task,
-                        shaded: i.isOdd,
-                        projectIcon:
-                            widget.projectIconFor?.call(task),
-                        onToggleDone: (_) {},
-                      ),
-                    ),
-                    child: TaskTile(
-                      task: task,
-                      shaded: i.isOdd,
-                      projectIcon: widget.projectIconFor?.call(task),
-                      onTap: () => widget.onTap(task),
-                      onToggleDone: (v) =>
-                          widget.onToggleDone(task, v),
-                    ),
+                  _DraggableRow(
+                    key: ValueKey(task.id),
+                    task: task,
+                    shaded: i.isOdd,
+                    theme: theme,
+                    onTap: () => widget.onTap(task),
+                    onToggleDone: (v) => widget.onToggleDone(task, v),
+                    projectIcon: widget.projectIconFor?.call(task),
                   ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+/// Zeile mit Drag-Handle links: nur am Handle-Icon wird gedraggt,
+/// der Rest der Zeile scrollt und ist tippbar wie gewohnt.
+class _DraggableRow extends StatefulWidget {
+  const _DraggableRow({
+    super.key,
+    required this.task,
+    required this.shaded,
+    required this.theme,
+    required this.onTap,
+    required this.onToggleDone,
+    this.projectIcon,
+  });
+
+  final Task task;
+  final bool shaded;
+  final ThemeData theme;
+  final VoidCallback onTap;
+  final ValueChanged<bool> onToggleDone;
+  final String? projectIcon;
+
+  @override
+  State<_DraggableRow> createState() => _DraggableRowState();
+}
+
+class _DraggableRowState extends State<_DraggableRow> {
+  bool _isDragging = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = widget.shaded
+        ? widget.theme.colorScheme.surfaceContainerHighest.withOpacity(0.35)
+        : null;
+
+    return ColoredBox(
+      color: bg ?? Colors.transparent,
+      child: Opacity(
+        opacity: _isDragging ? 0.35 : 1.0,
+        child: Row(
+          children: [
+            Draggable<Task>(
+              data: widget.task,
+              feedback: _DragFeedback(task: widget.task, theme: widget.theme),
+              onDragStarted: () => setState(() => _isDragging = true),
+              onDragEnd: (_) {
+                if (mounted) setState(() => _isDragging = false);
+              },
+              child: MouseRegion(
+                cursor: SystemMouseCursors.grab,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 14),
+                  child: Icon(
+                    Icons.drag_handle,
+                    size: 18,
+                    color: widget.theme.colorScheme.outline,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: TaskTile(
+                task: widget.task,
+                shaded: false, // Hintergrund wird vom ColoredBox oben gesetzt
+                projectIcon: widget.projectIcon,
+                onTap: widget.onTap,
+                onToggleDone: widget.onToggleDone,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
