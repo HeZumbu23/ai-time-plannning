@@ -10,7 +10,7 @@ COPY . .
 
 RUN flutter create --platforms=web . \
  && flutter pub get \
- && flutter build web --release
+ && flutter build web --release --pwa-strategy=none
 
 # ---- Runtime-Stage: Nginx ----
 FROM nginx:alpine
