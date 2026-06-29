@@ -4,11 +4,11 @@ import '../models/project.dart';
 import '../models/task.dart';
 import '../services/project_service.dart';
 import '../services/task_service.dart';
+import '../widgets/grouped_drag_drop_list.dart';
 import '../widgets/status_views.dart';
-import '../widgets/task_tile.dart';
 import 'task_detail_screen.dart';
 
-/// Wochenplan: Tasks der gewählten Kalenderwoche (planned_week).
+/// Wochenplan: Tasks der gewählten Kalenderwoche, gruppiert nach Wochentag.
 class WochenplanScreen extends StatefulWidget {
   const WochenplanScreen({super.key});
 
@@ -37,12 +37,12 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
       _service.tasksForWeek(_week),
       _projects.all(),
     ]);
-    final tasks = results[0] as List<Task>;
-    final projects = {for (final p in results[1] as List<Project>) p.id: p};
-    return _WochenplanData(tasks: tasks, projects: projects);
+    return _WochenplanData(
+      tasks: results[0] as List<Task>,
+      projects: {for (final p in results[1] as List<Project>) p.id: p},
+    );
   }
 
-  /// ISO-8601 Kalenderwoche.
   static int _isoWeekNumber(DateTime date) {
     final d = DateTime.utc(date.year, date.month, date.day);
     final dayOfYear = d.difference(DateTime.utc(d.year, 1, 1)).inDays + 1;
@@ -90,124 +90,66 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
     if (changed == true) await _refresh();
   }
 
-  Future<void> _createNewTask() async {
-    await _createTaskForDay(null);
-  }
-
-  Future<void> _createTaskForDay(DateTime? day) async {
-    final newTask = Task(
+  Future<void> _addTaskForDay(DateTime? day) async {
+    await _openDetail(Task(
       id: '',
       title: '',
       status: 'open',
       plannedWeek: _week,
       plannedDay: day,
-    );
-    await _openDetail(newTask);
+    ));
+  }
+
+  static String _dateStr(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Future<void> _moveTask(Task task, DateTime? newDay) async {
+    await _service.updateFields(task.id, {
+      'planned_day': newDay == null ? null : _dateStr(newDay),
+    });
+    await _refresh();
   }
 
   static const _weekdays = [
-    'Montag',
-    'Dienstag',
-    'Mittwoch',
-    'Donnerstag',
-    'Freitag',
-    'Samstag',
-    'Sonntag',
+    'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag',
+    'Freitag', 'Samstag', 'Sonntag',
   ];
 
   static String _dayLabel(DateTime? d) {
     if (d == null) return 'Ohne festen Tag';
-    final wd = _weekdays[d.weekday - 1];
-    return '$wd · ${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.';
+    return '${_weekdays[d.weekday - 1]} · '
+        '${d.day.toString().padLeft(2, '0')}.'
+        '${d.month.toString().padLeft(2, '0')}.';
   }
 
-  /// Tasks nach Wochentag gruppiert (planned_day) mit einklappbaren Gruppen.
-  Widget _buildGrouped(_WochenplanData data) {
-    final theme = Theme.of(context);
-    final groups = <DateTime?, List<Task>>{};
+  List<GroupEntry<DateTime?>> _toGroups(_WochenplanData data) {
+    final groupsMap = <DateTime?, List<Task>>{};
     for (final t in data.tasks) {
       final key = t.plannedDay == null
           ? null
-          : DateTime(t.plannedDay!.year, t.plannedDay!.month, t.plannedDay!.day);
-      (groups[key] ??= []).add(t);
+          : DateTime(
+              t.plannedDay!.year, t.plannedDay!.month, t.plannedDay!.day);
+      (groupsMap[key] ??= []).add(
+        _doneOverrides.containsKey(t.id)
+            ? t.withStatus(_doneOverrides[t.id]! ? 'done' : 'open')
+            : t,
+      );
     }
-    final keys = groups.keys.toList()
+    final keys = groupsMap.keys.toList()
       ..sort((a, b) {
-        if (a == null) return 1; // "ohne Tag" ans Ende
+        if (a == null) return 1;
         if (b == null) return -1;
         return a.compareTo(b);
       });
-
-    final headerColor = theme.colorScheme.secondaryContainer;
-    final onHeader = theme.colorScheme.onSecondaryContainer;
-
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      children: [
-        CollapseButton(collapsed: _allCollapsed, onTap: _toggleAll),
-        for (final key in keys)
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-            clipBehavior: Clip.antiAlias,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
-            child: ExpansionTile(
-              key: ValueKey('wochenplan_${key?.toString() ?? 'none'}_$_collapseGen'),
-              initiallyExpanded: !_allCollapsed,
-              backgroundColor: headerColor.withOpacity(0.25),
-              collapsedBackgroundColor: headerColor,
-              iconColor: onHeader,
-              collapsedIconColor: onHeader,
-              tilePadding: const EdgeInsets.symmetric(horizontal: 14),
-              childrenPadding: EdgeInsets.zero,
-              leading: Text(
-                key == null ? '📥' : '📅',
-                style: const TextStyle(fontSize: 20),
-              ),
-              title: Text(
-                _dayLabel(key),
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.bold, color: onHeader),
-              ),
-              subtitle: Text(
-                '${groups[key]!.length} Aufgaben',
-                style: theme.textTheme.labelSmall?.copyWith(color: onHeader),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.add, size: 20, color: onHeader),
-                    onPressed: () => _createTaskForDay(key),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    tooltip: 'Task hinzufügen',
-                  ),
-                  Icon(Icons.expand_more, color: onHeader, size: 18),
-                ],
-              ),
-              children: [
-                for (final (i, t) in groups[key]!.indexed)
-                  TaskTile(
-                    task: _doneOverrides.containsKey(t.id)
-                        ? t.withStatus(_doneOverrides[t.id]! ? 'done' : 'open')
-                        : t,
-                    shaded: i.isOdd,
-                    projectIcon: t.projectId != null
-                        ? data.projects[t.projectId]?.icon
-                        : null,
-                    onTap: () => _openDetail(t),
-                    onToggleDone: (v) => _toggleDone(t, v),
-                  ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 24),
-      ],
-    );
+    return [
+      for (final key in keys)
+        GroupEntry(
+          key: key,
+          title: _dayLabel(key),
+          icon: key == null ? '📥' : '📅',
+          tasks: groupsMap[key]!,
+        ),
+    ];
   }
 
   @override
@@ -243,12 +185,26 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
               return const EmptyView(
                   message: 'Keine Tasks in dieser Woche geplant.');
             }
-            return _buildGrouped(data);
+            return GroupedDragDropList<DateTime?>(
+              groups: _toGroups(data),
+              onMove: _moveTask,
+              onTap: _openDetail,
+              onToggleDone: _toggleDone,
+              onAddTask: _addTaskForDay,
+              projectIconFor: (t) =>
+                  t.projectId != null
+                      ? data.projects[t.projectId]?.icon
+                      : null,
+              allCollapsed: _allCollapsed,
+              collapseGen: _collapseGen,
+              headerWidget:
+                  CollapseButton(collapsed: _allCollapsed, onTap: _toggleAll),
+            );
           },
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _createNewTask,
+        onPressed: () => _addTaskForDay(null),
         tooltip: 'Neue Task',
         child: const Icon(Icons.add),
       ),
