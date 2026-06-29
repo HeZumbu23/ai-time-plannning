@@ -50,6 +50,18 @@ class Task {
 
   bool get isDone => status == 'done';
 
+  Task withStatus(String newStatus) => Task(
+        id: id, title: title, status: newStatus,
+        context: context, size: size, nextAction: nextAction,
+        plannedWeek: plannedWeek, plannedDay: plannedDay,
+        deadlineDate: deadlineDate, notes: notes,
+        projectId: projectId, project: project,
+        costType: costType, labels: labels,
+        dependsOn: dependsOn,
+        doneAt: newStatus == 'done' ? DateTime.now() : null,
+        createdAt: createdAt, daySection: daySection,
+      );
+
   static DateTime? _parseDate(dynamic value) {
     if (value == null) return null;
     return DateTime.tryParse(value.toString());

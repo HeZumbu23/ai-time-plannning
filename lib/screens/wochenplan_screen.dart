@@ -23,6 +23,7 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
   late Future<_WochenplanData> _future;
   bool _allCollapsed = false;
   int _collapseGen = 0;
+  final _doneOverrides = <String, bool>{};
 
   @override
   void initState() {
@@ -59,6 +60,7 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
   void _changeWeek(int delta) {
     setState(() {
       _week += delta;
+      _doneOverrides.clear();
       _future = _load();
     });
   }
@@ -69,13 +71,16 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
       });
 
   Future<void> _refresh() async {
-    setState(() => _future = _load());
+    setState(() {
+      _doneOverrides.clear();
+      _future = _load();
+    });
     await _future;
   }
 
   Future<void> _toggleDone(Task task, bool done) async {
+    setState(() => _doneOverrides[task.id] = done);
     await _service.setStatus(task.id, done ? 'done' : 'open');
-    await _refresh();
   }
 
   Future<void> _openDetail(Task task) async {
@@ -86,11 +91,16 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
   }
 
   Future<void> _createNewTask() async {
+    await _createTaskForDay(null);
+  }
+
+  Future<void> _createTaskForDay(DateTime? day) async {
     final newTask = Task(
       id: '',
       title: '',
       status: 'open',
       plannedWeek: _week,
+      plannedDay: day,
     );
     await _openDetail(newTask);
   }
@@ -166,10 +176,25 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
                 '${groups[key]!.length} Aufgaben',
                 style: theme.textTheme.labelSmall?.copyWith(color: onHeader),
               ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.add, size: 20, color: onHeader),
+                    onPressed: () => _createTaskForDay(key),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    tooltip: 'Task hinzufügen',
+                  ),
+                  Icon(Icons.expand_more, color: onHeader, size: 18),
+                ],
+              ),
               children: [
                 for (final (i, t) in groups[key]!.indexed)
                   TaskTile(
-                    task: t,
+                    task: _doneOverrides.containsKey(t.id)
+                        ? t.withStatus(_doneOverrides[t.id]! ? 'done' : 'open')
+                        : t,
                     shaded: i.isOdd,
                     projectIcon: t.projectId != null
                         ? data.projects[t.projectId]?.icon

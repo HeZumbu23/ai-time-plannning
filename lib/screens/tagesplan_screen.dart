@@ -22,6 +22,7 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
   late Future<_TagesplanData> _future;
   bool _allCollapsed = false;
   int _collapseGen = 0;
+  final _doneOverrides = <String, bool>{};
 
   @override
   void initState() {
@@ -40,7 +41,10 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _load());
+    setState(() {
+      _doneOverrides.clear();
+      _future = _load();
+    });
     await _future;
   }
 
@@ -50,8 +54,8 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
       });
 
   Future<void> _toggleDone(Task task, bool done) async {
+    setState(() => _doneOverrides[task.id] = done);
     await _service.setStatus(task.id, done ? 'done' : 'open');
-    await _refresh();
   }
 
   Future<void> _openDetail(Task task) async {
@@ -62,11 +66,16 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
   }
 
   Future<void> _createNewTask() async {
+    await _createTaskForSection(null);
+  }
+
+  Future<void> _createTaskForSection(String? section) async {
     final newTask = Task(
       id: '',
       title: '',
       status: 'open',
       plannedDay: DateTime.now(),
+      daySection: section,
     );
     await _openDetail(newTask);
   }
@@ -137,10 +146,25 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
                 '${groups[key]!.length} Aufgaben',
                 style: theme.textTheme.labelSmall?.copyWith(color: onHeader),
               ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.add, size: 20, color: onHeader),
+                    onPressed: () => _createTaskForSection(key),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    tooltip: 'Task hinzufügen',
+                  ),
+                  Icon(Icons.expand_more, color: onHeader, size: 18),
+                ],
+              ),
               children: [
                 for (final (i, t) in groups[key]!.indexed)
                   TaskTile(
-                    task: t,
+                    task: _doneOverrides.containsKey(t.id)
+                        ? t.withStatus(_doneOverrides[t.id]! ? 'done' : 'open')
+                        : t,
                     shaded: i.isOdd,
                     projectIcon: t.projectId != null
                         ? data.projects[t.projectId]?.icon
