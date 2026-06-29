@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/project.dart';
+import 'drag_auto_scroll.dart';
 import 'project_card.dart';
 
 class ProjectRoadmapEntry {
@@ -38,6 +39,13 @@ class ProjectRoadmapList extends StatefulWidget {
 
 class _ProjectRoadmapListState extends State<ProjectRoadmapList> {
   String? _movingProjectId;
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleMove(Project project, String? newKey) async {
     setState(() => _movingProjectId = project.id);
@@ -47,12 +55,16 @@ class _ProjectRoadmapListState extends State<ProjectRoadmapList> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      children: [
-        for (final group in widget.groups) _buildGroupCard(context, group),
-        const SizedBox(height: 24),
-      ],
+    return DragAutoScrollView(
+      controller: _scrollController,
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        children: [
+          for (final group in widget.groups) _buildGroupCard(context, group),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
