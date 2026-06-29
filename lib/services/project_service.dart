@@ -1,10 +1,11 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase/supabase.dart';
 
+import '../config/supabase_client.dart';
 import '../models/project.dart';
 
 /// Datenzugriff auf die `projects`-Tabelle.
 class ProjectService {
-  final SupabaseClient _client = Supabase.instance.client;
+  SupabaseClient get _client => supabaseClient;
 
   Future<List<Project>> all() async {
     final rows = await _client

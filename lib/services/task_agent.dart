@@ -1,11 +1,13 @@
 import 'dart:convert';
 
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase/supabase.dart';
+
+import '../config/supabase_client.dart';
 
 /// Stellt die Tools bereit, mit denen Claude die Tasks in Supabase lesen und
 /// ändern kann, und führt sie aus.
 class TaskAgent {
-  final SupabaseClient _client = Supabase.instance.client;
+  SupabaseClient get _client => supabaseClient;
 
   static String _dateOnly(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
