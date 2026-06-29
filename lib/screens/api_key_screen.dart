@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:supabase/supabase.dart';
 
@@ -19,6 +20,8 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
   final _controller = TextEditingController();
   bool _scanning = false;
   bool _saving = false;
+  bool _qrSent = false;
+  bool _changingKey = false;
   String? _error;
   MobileScannerController? _scannerController;
 
@@ -59,12 +62,10 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
       setState(() => _error = 'Bitte einen API-Key eingeben.');
       return;
     }
-
     setState(() {
       _saving = true;
       _error = null;
     });
-
     try {
       initSupabaseClient(SupabaseClient(_supabaseUrl, key));
       await KeyStorage.saveKey(key);
@@ -77,11 +78,29 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
     }
   }
 
+  Future<void> _printQr() async {
+    setState(() => _qrSent = false);
+    try {
+      await http.get(Uri.parse('/api/log-qr'));
+      if (mounted) setState(() => _qrSent = true);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('QR-Endpoint nicht erreichbar.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('API-Key einrichten')),
-      body: _scanning ? _buildScanner() : _buildForm(),
+      appBar: AppBar(title: const Text('API-Key')),
+      body: _scanning
+          ? _buildScanner()
+          : (isSupabaseInitialized && !_changingKey)
+              ? _buildConfigured()
+              : _buildForm(),
     );
   }
 
@@ -121,6 +140,59 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildConfigured() {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(Icons.check_circle_outline,
+                  size: 64, color: theme.colorScheme.primary),
+              const SizedBox(height: 16),
+              Text(
+                'API-Key konfiguriert',
+                style: theme.textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              FilledButton.icon(
+                icon: const Icon(Icons.qr_code),
+                label: const Text('QR-Code in Container-Logs ausgeben'),
+                onPressed: _printQr,
+              ),
+              if (_qrSent) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'QR-Code wurde in die Container-Logs geschrieben.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.edit),
+                label: const Text('Key ändern'),
+                onPressed: () => setState(() => _changingKey = true),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => context.go('/'),
+                child: const Text('Zurück zur App'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

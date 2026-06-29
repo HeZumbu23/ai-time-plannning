@@ -154,7 +154,7 @@ Regeln:
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                initialValue: model,
+                value: model,
                 decoration: const InputDecoration(
                     labelText: 'Modell', border: OutlineInputBorder()),
                 items: ChatConfig.models.entries

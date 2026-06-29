@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../config/supabase_client.dart';
+
 /// Haupt-Navigation mit URL-basierter History für den Browser.
 /// Jedes Tab hat eine eigene URL: / | /wochenplan | /backlog | /projekte | /chat
 class HomeShell extends StatelessWidget {
@@ -47,17 +49,27 @@ class HomeShell extends StatelessWidget {
     );
   }
 
+  AppBar? _buildAppBar(BuildContext context) {
+    // WochenplanScreen hat seinen eigenen AppBar (mit Wochennavigation).
+    if (navigationShell.currentIndex == 1) return null;
+
+    return AppBar(
+      title: Text(_titles[navigationShell.currentIndex]),
+      actions: [
+        if (isSupabaseInitialized)
+          IconButton(
+            icon: const Icon(Icons.vpn_key_outlined),
+            tooltip: 'API-Key / QR',
+            onPressed: () => context.push('/setup'),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 720;
-
-    // WochenplanScreen bringt seinen eigenen AppBar (mit Wochennavigation) mit,
-    // daher zeigen wir den Shell-AppBar nur für die anderen Tabs.
-    final showShellAppBar = navigationShell.currentIndex != 1;
-
-    final appBar = showShellAppBar
-        ? AppBar(title: Text(_titles[navigationShell.currentIndex]))
-        : null;
+    final appBar = _buildAppBar(context);
 
     if (wide) {
       return Scaffold(
