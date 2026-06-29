@@ -31,11 +31,20 @@ jobs:
       - name: Generate Android scaffold
         run: flutter create --platforms=android --org de.kerch --project-name ai_time_planning .
 
-      - name: Add INTERNET permission to release manifest
+      - name: Update Kotlin version to 1.9.22
+        run: |
+          # Flutter 3.24 generates 1.7.1; shared_preferences_android 2.4.7 needs 1.9.x
+          sed -i "s/ext.kotlin_version = '[^']*'/ext.kotlin_version = '1.9.22'/" android/build.gradle || true
+          sed -i "s/id \"org.jetbrains.kotlin.android\" version \"[^\"]*\"/id \"org.jetbrains.kotlin.android\" version \"1.9.22\"/" android/settings.gradle || true
+
+      - name: Add Android permissions to release manifest
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
           if ! grep -q 'android.permission.INTERNET' "$MANIFEST"; then
             sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET" />\n    <application#' "$MANIFEST"
+          fi
+          if ! grep -q 'android.permission.CAMERA' "$MANIFEST"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <application#' "$MANIFEST"
           fi
 
       - name: Get Flutter dependencies
