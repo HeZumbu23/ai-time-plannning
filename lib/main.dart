@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase/supabase.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Supabase.initialize() noch auskommentiert – testen ob Import allein crasht
-  // await Supabase.initialize(...);
 
   runApp(const App());
 }
@@ -30,7 +27,7 @@ class App extends StatelessWidget {
         ),
         body: const Center(
           child: Text(
-            'supabase_flutter importiert, initialize() noch nicht aufgerufen',
+            'supabase (core) importiert – kein Flutter-Wrapper',
             style: TextStyle(fontSize: 18),
             textAlign: TextAlign.center,
           ),
