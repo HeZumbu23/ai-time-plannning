@@ -22,6 +22,7 @@ class _BacklogScreenState extends State<BacklogScreen> {
   late Future<_BacklogData> _future;
   bool _allCollapsed = false;
   int _collapseGen = 0;
+  bool _nurUngeplante = false;
 
   @override
   void initState() {
@@ -70,9 +71,13 @@ class _BacklogScreenState extends State<BacklogScreen> {
   Widget _buildGrouped(_BacklogData data) {
     final theme = Theme.of(context);
 
+    final filteredTasks = _nurUngeplante
+        ? data.tasks.where((t) => t.plannedWeek == null).toList()
+        : data.tasks;
+
     // Gruppieren nach project_id (null -> "Ohne Projekt").
     final groups = <String?, List<Task>>{};
-    for (final t in data.tasks) {
+    for (final t in filteredTasks) {
       (groups[t.projectId] ??= []).add(t);
     }
 
@@ -98,7 +103,40 @@ class _BacklogScreenState extends State<BacklogScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        CollapseButton(collapsed: _allCollapsed, onTap: _toggleAll),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 4, 0),
+          child: Row(
+            children: [
+              FilterChip(
+                label: const Text('Nur ungeplante'),
+                selected: _nurUngeplante,
+                onSelected: (v) => setState(() => _nurUngeplante = v),
+                visualDensity: VisualDensity.compact,
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: _toggleAll,
+                icon: Icon(
+                  _allCollapsed ? Icons.unfold_more : Icons.unfold_less,
+                  size: 16,
+                ),
+                label: Text(_allCollapsed ? 'Alle ausklappen' : 'Alle einklappen'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (filteredTasks.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(
+              child: Text('Alle Tasks sind bereits geplant. 🎉',
+                  textAlign: TextAlign.center),
+            ),
+          ),
         for (final key in keys)
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
