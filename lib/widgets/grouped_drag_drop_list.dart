@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/task.dart';
+import 'drag_auto_scroll.dart';
 import 'task_tile.dart';
 
 /// Datensatz für eine Gruppe im [GroupedDragDropList].
@@ -77,6 +78,13 @@ class _GroupedDragDropListState<K>
   /// ID des Tasks, der gerade verschoben wird – wird in ALLEN Gruppen
   /// ausgeblendet, bis [onMove] abgeschlossen ist.
   String? _movingTaskId;
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleMove(Task task, K newGroup) async {
     setState(() => _movingTaskId = task.id);
@@ -86,14 +94,18 @@ class _GroupedDragDropListState<K>
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      children: [
-        if (widget.headerWidget != null) widget.headerWidget!,
-        for (final group in widget.groups)
-          _buildGroupCard(context, group),
-        const SizedBox(height: 24),
-      ],
+    return DragAutoScrollView(
+      controller: _scrollController,
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        children: [
+          if (widget.headerWidget != null) widget.headerWidget!,
+          for (final group in widget.groups)
+            _buildGroupCard(context, group),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
