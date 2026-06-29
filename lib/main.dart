@@ -3,15 +3,23 @@ import 'package:supabase/supabase.dart';
 
 import 'config/supabase_client.dart';
 import 'router.dart';
+import 'services/key_storage.dart';
 
 const _supabaseUrl = 'https://vnfkkujtkbgkqafbbipj.supabase.co';
-const _supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (_supabaseKey.isNotEmpty) {
-    initSupabaseClient(SupabaseClient(_supabaseUrl, _supabaseKey));
+  // Web/Docker: compile-time key (replaced by sed at container start).
+  var key = const String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+
+  // Android/runtime: key stored in SharedPreferences (entered via setup screen).
+  if (key.isEmpty) {
+    key = await KeyStorage.loadKey() ?? '';
+  }
+
+  if (key.isNotEmpty) {
+    initSupabaseClient(SupabaseClient(_supabaseUrl, key));
   }
 
   runApp(const App());
