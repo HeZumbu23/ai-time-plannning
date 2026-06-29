@@ -21,6 +21,8 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
   final _projects = ProjectService();
   late int _week;
   late Future<_WochenplanData> _future;
+  bool _allCollapsed = false;
+  int _collapseGen = 0;
 
   @override
   void initState() {
@@ -60,6 +62,11 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
       _future = _load();
     });
   }
+
+  void _toggleAll() => setState(() {
+        _allCollapsed = !_allCollapsed;
+        _collapseGen++;
+      });
 
   Future<void> _refresh() async {
     setState(() => _future = _load());
@@ -127,6 +134,7 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        CollapseButton(collapsed: _allCollapsed, onTap: _toggleAll),
         for (final key in keys)
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -137,8 +145,8 @@ class _WochenplanScreenState extends State<WochenplanScreen> {
               side: BorderSide(color: theme.colorScheme.outlineVariant),
             ),
             child: ExpansionTile(
-              key: PageStorageKey<String>('wochenplan_${key?.toString() ?? 'none'}'),
-              initiallyExpanded: true,
+              key: ValueKey('wochenplan_${key?.toString() ?? 'none'}_$_collapseGen'),
+              initiallyExpanded: !_allCollapsed,
               backgroundColor: headerColor.withOpacity(0.25),
               collapsedBackgroundColor: headerColor,
               iconColor: onHeader,

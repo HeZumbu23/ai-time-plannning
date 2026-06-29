@@ -20,6 +20,8 @@ class _BacklogScreenState extends State<BacklogScreen> {
   final _service = TaskService();
   final _projects = ProjectService();
   late Future<_BacklogData> _future;
+  bool _allCollapsed = false;
+  int _collapseGen = 0;
 
   @override
   void initState() {
@@ -38,6 +40,11 @@ class _BacklogScreenState extends State<BacklogScreen> {
     setState(() => _future = _load());
     await _future;
   }
+
+  void _toggleAll() => setState(() {
+        _allCollapsed = !_allCollapsed;
+        _collapseGen++;
+      });
 
   Future<void> _toggleDone(Task task, bool done) async {
     await _service.setStatus(task.id, done ? 'done' : 'open');
@@ -91,6 +98,7 @@ class _BacklogScreenState extends State<BacklogScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        CollapseButton(collapsed: _allCollapsed, onTap: _toggleAll),
         for (final key in keys)
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -101,8 +109,8 @@ class _BacklogScreenState extends State<BacklogScreen> {
               side: BorderSide(color: theme.colorScheme.outlineVariant),
             ),
             child: ExpansionTile(
-              key: PageStorageKey<String>('backlog_${key ?? 'none'}'),
-              initiallyExpanded: true,
+              key: ValueKey('backlog_${key ?? 'none'}_$_collapseGen'),
+              initiallyExpanded: !_allCollapsed,
               backgroundColor: headerColor.withOpacity(0.25),
               collapsedBackgroundColor: headerColor,
               iconColor: onHeader,
