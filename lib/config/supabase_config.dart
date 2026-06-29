@@ -2,75 +2,36 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-/// Supabase-Verbindungsdaten.
-/// 
-/// Web: Lädt config.json (generiert von docker-entrypoint.sh)
-/// Android: Nutzt hardcoded Werte
 class SupabaseConfig {
   SupabaseConfig._();
 
-  static late String url;
-  static late String anonKey;
+  static String _url = 'https://vnfkkujtkbgkqafbbipj.supabase.co';
+  static String _anonKey = '';
 
-  static void init() {
+  static String get url => _url;
+  static String get anonKey => _anonKey;
+  static bool get isConfigured => _url.isNotEmpty && _anonKey.isNotEmpty;
+
+  static Future<void> initialize() async {
     if (kIsWeb) {
-      _initWeb();
+      await _loadFromJson();
     } else {
-      _initNative();
+      _anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
+          '.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZuZmtrdWp0a2Jna3FhZmJiaXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDEwNjk5NzgsImV4cCI6MTczMjYwNTk3OH0'
+          '.t5LjWrLqFB8VT-RNJRU6N6HwHPcLQy5STU1Y-Yj_TGo';
     }
   }
 
-  /// Warte auf asynchrones Laden (z.B. config.json für Web)
-  static Future<void> waitForConfig() async {
-    if (kIsWeb) {
-      await _loadWebConfig();
-    }
-  }
-
-  static void _initWeb() {
-    // Für Web: Setze Defaults, config.json wird später geladen
-    url = 'https://vnfkkujtkbgkqafbbipj.supabase.co';
-    anonKey = '';
-  }
-
-  static Future<void> _loadWebConfig() async {
+  static Future<void> _loadFromJson() async {
     try {
-      print('⏳ Loading config.json from server...');
-      final uri = Uri.parse('/config.json');
-      print('📍 Request URI: $uri');
-
-      final response = await http.get(uri).timeout(
-        const Duration(seconds: 5),
-        onTimeout: () {
-          print('✗ Config request timeout');
-          throw Exception('Config request timeout');
-        },
-      );
-
-      print('📬 Response status: ${response.statusCode}');
-      print('📬 Response body: ${response.body}');
-
+      final response = await http
+          .get(Uri.parse('/config.json'))
+          .timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
-        final config = jsonDecode(response.body);
-        url = config['supabaseUrl'] ?? 'https://vnfkkujtkbgkqafbbipj.supabase.co';
-        anonKey = config['supabaseAnonKey'] ?? '';
-        print('✓ Config loaded: $url');
-        print('✓ Anon key loaded: ${anonKey.isNotEmpty ? 'yes' : 'EMPTY'}');
-      } else {
-        print('✗ Config not found (HTTP ${response.statusCode})');
-        print('✗ Response body: ${response.body}');
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        _url = (data['supabaseUrl'] as String?) ?? _url;
+        _anonKey = (data['supabaseAnonKey'] as String?) ?? '';
       }
-    } catch (e, stack) {
-      print('✗ Config load error: $e');
-      print('✗ Stack trace: $stack');
-    }
+    } catch (_) {}
   }
-
-  static void _initNative() {
-    // Android/iOS: hardcoded
-    url = 'https://vnfkkujtkbgkqafbbipj.supabase.co';
-    anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZuZmtrdWp0a2Jna3FhZmJiaXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDEwNjk5NzgsImV4cCI6MTczMjYwNTk3OH0.t5LjWrLqFB8VT-RNJRU6N6HwHPcLQy5STU1Y-Yj_TGo';
-  }
-
-  static bool get isConfigured => url.isNotEmpty && anonKey.isNotEmpty;
 }

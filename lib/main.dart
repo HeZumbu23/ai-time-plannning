@@ -7,11 +7,7 @@ import 'screens/home_shell.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lade Config (sync für Android, dann async für Web)
-  SupabaseConfig.init();
-
-  // Warte auf async config load (z.B. config.json für Web)
-  await SupabaseConfig.waitForConfig();
+  await SupabaseConfig.initialize();
 
   if (!SupabaseConfig.isConfigured) {
     runApp(const _ConfigErrorApp());
@@ -26,8 +22,6 @@ Future<void> main() async {
   runApp(const PlannerApp());
 }
 
-/// Sichtbarer Hinweis, falls der Build ohne Publishable Key gestartet wurde
-/// (Repository-Variable `SUPABASE_PUBLISHABLE_KEY` nicht gesetzt).
 class _ConfigErrorApp extends StatelessWidget {
   const _ConfigErrorApp();
 
@@ -40,9 +34,9 @@ class _ConfigErrorApp extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.all(24),
             child: Text(
-              'Kein Supabase Publishable Key im Build.\n\n'
-              'CI: Repository-Variable SUPABASE_PUBLISHABLE_KEY setzen.\n'
-              'Lokal: --dart-define=SUPABASE_PUBLISHABLE_KEY=<key>',
+              'Kein Supabase Key konfiguriert.\n\n'
+              'Web: SUPABASE_PUBLISHABLE_KEY Umgebungsvariable in Portainer setzen.\n'
+              'Android: Wird beim Build eingebettet.',
               textAlign: TextAlign.center,
             ),
           ),
@@ -58,13 +52,12 @@ class PlannerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TODO & Coaching',
+      title: 'ai-time-plannning',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3D5AFE)),
         useMaterial3: true,
       ),
-      // Kein Login: RLS ist deaktiviert, der Anon-Key greift direkt.
       home: const HomeShell(),
     );
   }
