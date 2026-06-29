@@ -9,8 +9,8 @@ import 'package:http/http.dart' as http;
 class SupabaseConfig {
   SupabaseConfig._();
 
-  static late final String url;
-  static late final String anonKey;
+  static late String url;
+  static late String anonKey;
 
   static void init() {
     if (kIsWeb) {
