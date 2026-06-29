@@ -1,10 +1,11 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase/supabase.dart';
 
+import '../config/supabase_client.dart';
 import '../models/task.dart';
 
 /// Datenzugriff auf die `tasks`-Tabelle.
 class TaskService {
-  final SupabaseClient _client = Supabase.instance.client;
+  SupabaseClient get _client => supabaseClient;
 
   static String _dateOnly(DateTime d) {
     final m = d.month.toString().padLeft(2, '0');
