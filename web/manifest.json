@@ -1,6 +1,6 @@
 {
-  "name": "TODO & Coaching",
-  "short_name": "TODO",
+  "name": "ai-time-plannning",
+  "short_name": "Timeplan",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0175C2",
