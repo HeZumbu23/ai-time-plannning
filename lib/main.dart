@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:supabase/supabase.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+const _supabaseUrl = 'https://vnfkkujtkbgkqafbbipj.supabase.co';
+const _supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (_supabaseKey.isNotEmpty) {
+    await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseKey);
+  }
 
   runApp(const App());
 }
@@ -25,11 +32,12 @@ class App extends StatelessWidget {
           foregroundColor: Colors.white,
           title: const Text('ai-time-plannning'),
         ),
-        body: const Center(
+        body: Center(
           child: Text(
-            'supabase (core) importiert – kein Flutter-Wrapper',
-            style: TextStyle(fontSize: 18),
-            textAlign: TextAlign.center,
+            _supabaseKey.isNotEmpty
+                ? 'Supabase verbunden ✓'
+                : 'Kein Key konfiguriert',
+            style: const TextStyle(fontSize: 20),
           ),
         ),
       ),
