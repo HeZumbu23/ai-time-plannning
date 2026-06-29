@@ -4,11 +4,12 @@ import '../models/project.dart';
 import '../models/task.dart';
 import '../services/project_service.dart';
 import '../services/task_service.dart';
+import '../widgets/grouped_drag_drop_list.dart';
 import '../widgets/status_views.dart';
-import '../widgets/task_tile.dart';
 import 'task_detail_screen.dart';
 
-/// Tagesplan: Tasks für heute (planned_day = today).
+/// Tagesplan: Tasks für heute (planned_day = today), gruppiert nach Tagesabschnitt.
+/// Die drei Abschnitte Vormittag/Nachmittag/Abend sind immer sichtbar, auch wenn leer.
 class TagesplanScreen extends StatefulWidget {
   const TagesplanScreen({super.key});
 
@@ -35,9 +36,10 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
       _service.tasksForDay(DateTime.now()),
       _projects.all(),
     ]);
-    final tasks = results[0] as List<Task>;
-    final projects = {for (final p in results[1] as List<Project>) p.id: p};
-    return _TagesplanData(tasks: tasks, projects: projects);
+    return _TagesplanData(
+      tasks: results[0] as List<Task>,
+      projects: {for (final p in results[1] as List<Project>) p.id: p},
+    );
   }
 
   Future<void> _refresh() async {
@@ -65,119 +67,64 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
     if (changed == true) await _refresh();
   }
 
-  Future<void> _createNewTask() async {
-    await _createTaskForSection(null);
-  }
-
-  Future<void> _createTaskForSection(String? section) async {
-    final newTask = Task(
+  Future<void> _addTaskToSection(String? section) async {
+    await _openDetail(Task(
       id: '',
       title: '',
       status: 'open',
       plannedDay: DateTime.now(),
       daySection: section,
-    );
-    await _openDetail(newTask);
+    ));
   }
 
-  static const _sections = ['vormittag', 'nachmittag', 'abend'];
-  static const _sectionLabel = {
+  Future<void> _moveTask(Task task, String? newSection) async {
+    await _service.updateFields(task.id, {'day_section': newSection});
+    await _refresh();
+  }
+
+  static const _fixedSections = ['vormittag', 'nachmittag', 'abend'];
+
+  static const _sectionLabel = <String?, String>{
     'vormittag': 'Vormittag',
     'nachmittag': 'Nachmittag',
     'abend': 'Abend',
     null: 'Ohne Abschnitt',
   };
-  static const _sectionIcon = {
+
+  static const _sectionIcon = <String?, String>{
     'vormittag': '🌅',
     'nachmittag': '☀️',
     'abend': '🌙',
     null: '📥',
   };
 
-  /// Tasks nach Tagesabschnitt gruppiert (Vormittag / Nachmittag / Abend).
-  Widget _buildGrouped(_TagesplanData data) {
-    final theme = Theme.of(context);
+  List<GroupEntry<String?>> _toGroups(_TagesplanData data) {
     final groups = <String?, List<Task>>{};
     for (final t in data.tasks) {
-      (groups[t.daySection] ??= []).add(t);
+      (groups[t.daySection] ??= []).add(
+        _doneOverrides.containsKey(t.id)
+            ? t.withStatus(_doneOverrides[t.id]! ? 'done' : 'open')
+            : t,
+      );
     }
-
-    // Feste Reihenfolge: Vormittag → Nachmittag → Abend → ohne
-    final keys = [
-      ..._sections.where(groups.containsKey),
-      if (groups.containsKey(null)) null,
+    return [
+      // Feste Abschnitte immer anzeigen (auch wenn leer – als Drag-Ziel)
+      for (final key in _fixedSections)
+        GroupEntry(
+          key: key,
+          title: _sectionLabel[key]!,
+          icon: _sectionIcon[key]!,
+          tasks: groups[key] ?? [],
+        ),
+      // "Ohne Abschnitt" nur wenn Tasks ohne Abschnitt vorhanden
+      if (groups.containsKey(null))
+        GroupEntry(
+          key: null,
+          title: _sectionLabel[null]!,
+          icon: _sectionIcon[null]!,
+          tasks: groups[null]!,
+        ),
     ];
-
-    final headerColor = theme.colorScheme.secondaryContainer;
-    final onHeader = theme.colorScheme.onSecondaryContainer;
-
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      children: [
-        CollapseButton(collapsed: _allCollapsed, onTap: _toggleAll),
-        for (final key in keys)
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-            clipBehavior: Clip.antiAlias,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
-            child: ExpansionTile(
-              key: ValueKey('tagesplan_${key ?? 'none'}_$_collapseGen'),
-              initiallyExpanded: !_allCollapsed,
-              backgroundColor: headerColor.withOpacity(0.25),
-              collapsedBackgroundColor: headerColor,
-              iconColor: onHeader,
-              collapsedIconColor: onHeader,
-              tilePadding: const EdgeInsets.symmetric(horizontal: 14),
-              childrenPadding: EdgeInsets.zero,
-              leading: Text(
-                _sectionIcon[key]!,
-                style: const TextStyle(fontSize: 20),
-              ),
-              title: Text(
-                _sectionLabel[key]!,
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.bold, color: onHeader),
-              ),
-              subtitle: Text(
-                '${groups[key]!.length} Aufgaben',
-                style: theme.textTheme.labelSmall?.copyWith(color: onHeader),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.add, size: 20, color: onHeader),
-                    onPressed: () => _createTaskForSection(key),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    tooltip: 'Task hinzufügen',
-                  ),
-                  Icon(Icons.expand_more, color: onHeader, size: 18),
-                ],
-              ),
-              children: [
-                for (final (i, t) in groups[key]!.indexed)
-                  TaskTile(
-                    task: _doneOverrides.containsKey(t.id)
-                        ? t.withStatus(_doneOverrides[t.id]! ? 'done' : 'open')
-                        : t,
-                    shaded: i.isOdd,
-                    projectIcon: t.projectId != null
-                        ? data.projects[t.projectId]?.icon
-                        : null,
-                    onTap: () => _openDetail(t),
-                    onToggleDone: (v) => _toggleDone(t, v),
-                  ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 24),
-      ],
-    );
   }
 
   @override
@@ -194,17 +141,26 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
             if (snapshot.hasError) {
               return ErrorView(error: snapshot.error!, onRetry: _refresh);
             }
-            final data = snapshot.data!;
-            if (data.tasks.isEmpty) {
-              return const EmptyView(
-                  message: 'Heute nichts geplant. Genieß den Tag! 🎉');
-            }
-            return _buildGrouped(data);
+            return GroupedDragDropList<String?>(
+              groups: _toGroups(snapshot.data!),
+              onMove: _moveTask,
+              onTap: _openDetail,
+              onToggleDone: _toggleDone,
+              onAddTask: _addTaskToSection,
+              projectIconFor: (t) =>
+                  t.projectId != null
+                      ? snapshot.data!.projects[t.projectId]?.icon
+                      : null,
+              allCollapsed: _allCollapsed,
+              collapseGen: _collapseGen,
+              headerWidget:
+                  CollapseButton(collapsed: _allCollapsed, onTap: _toggleAll),
+            );
           },
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _createNewTask,
+        onPressed: () => _addTaskToSection(null),
         tooltip: 'Neue Task',
         child: const Icon(Icons.add),
       ),
