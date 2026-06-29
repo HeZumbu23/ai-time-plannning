@@ -16,9 +16,8 @@ RUN flutter create --platforms=web . \
 # ---- Runtime-Stage: Nginx ----
 FROM nginx:alpine
 
-RUN apk add --no-cache socat python3 \
-    && python3 -m ensurepip \
-    && pip3 install --no-cache-dir qrcode
+RUN apk add --no-cache socat python3 py3-pip \
+    && pip3 install --no-cache-dir --break-system-packages qrcode
 
 COPY --from=build /app/build/web /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
