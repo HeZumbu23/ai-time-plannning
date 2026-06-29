@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'config/supabase_client.dart';
+import 'screens/api_key_screen.dart';
 import 'screens/backlog_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/home_shell.dart';
@@ -8,22 +10,19 @@ import 'screens/projekte_screen.dart';
 import 'screens/tagesplan_screen.dart';
 import 'screens/wochenplan_screen.dart';
 
-const _supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
-
 /// App-Router: Jedes Tab hat seine eigene URL → Browser-History funktioniert.
 final appRouter = GoRouter(
   initialLocation: '/',
   redirect: (context, state) {
-    // Wenn kein Key konfiguriert, zur No-Key-Seite weiterleiten.
-    if (_supabaseKey.isEmpty && state.matchedLocation != '/no-key') {
-      return '/no-key';
+    if (!isSupabaseInitialized && state.matchedLocation != '/setup') {
+      return '/setup';
     }
     return null;
   },
   routes: [
     GoRoute(
-      path: '/no-key',
-      builder: (_, __) => const _NoKeyScreen(),
+      path: '/setup',
+      builder: (_, __) => const ApiKeyScreen(),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
@@ -63,23 +62,3 @@ final appRouter = GoRouter(
     ),
   ],
 );
-
-class _NoKeyScreen extends StatelessWidget {
-  const _NoKeyScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'Kein Supabase Key konfiguriert.\n\n'
-            'SUPABASE_PUBLISHABLE_KEY Umgebungsvariable in Portainer setzen.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
-    );
-  }
-}

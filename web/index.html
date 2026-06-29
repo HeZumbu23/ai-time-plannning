@@ -15,6 +15,14 @@
 
   <title>ai-time-plannning</title>
   <link rel="manifest" href="manifest.json">
+  <!-- BarcodeDetector polyfill for QR scanning in browsers that lack native support -->
+  <script type="module">
+    if (!('BarcodeDetector' in window)) {
+      import('https://fastly.jsdelivr.net/npm/barcode-detector@2/dist/es/barcode-detector.js')
+        .then(m => { window['BarcodeDetector'] = m.BarcodeDetector; })
+        .catch(() => {});
+    }
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
