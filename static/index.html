@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ai-time-plannning</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #3D5AFE;
+      --accent-light: #8187ff;
+      --bg: #f5f6fa;
+      --surface: #ffffff;
+      --text: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--accent);
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(61,90,254,0.3);
+    }
+
+    header .logo {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 20px;
+    }
+
+    header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+
+    .main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 0;
+    }
+
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 20px 0;
+    }
+
+    .sidebar-section { margin-bottom: 8px; }
+
+    .sidebar-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 0 20px 8px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text);
+      border-left: 3px solid transparent;
+      transition: background 0.15s;
+    }
+
+    .sidebar-item:hover { background: var(--bg); }
+    .sidebar-item.active {
+      background: #eef0ff;
+      border-left-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .sidebar-item .icon { font-size: 18px; width: 22px; text-align: center; }
+
+    .content { padding: 28px; overflow-y: auto; }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .page-subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .card .card-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .card .card-value { font-size: 28px; font-weight: 700; }
+    .card .card-sub { font-size: 12px; color: var(--accent); margin-top: 4px; }
+
+    .task-panel {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .task-panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .task-panel-header h2 { font-size: 16px; font-weight: 600; }
+
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .task-list { padding: 8px 0; }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .task-item:last-child { border-bottom: none; }
+
+    .task-check {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .task-check.done {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .task-text { flex: 1; }
+    .task-text.done { text-decoration: line-through; color: var(--muted); }
+
+    .task-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: #eef0ff;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .badge-coming-soon {
+      display: inline-block;
+      background: #fff3cd;
+      color: #856404;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    @media (max-width: 640px) {
+      .main { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">T</div>
+  <h1>ai-time-plannning</h1>
+</header>
+
+<div class="main">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Planung</div>
+      <div class="sidebar-item active"><span class="icon">📋</span> Heute</div>
+      <div class="sidebar-item"><span class="icon">📅</span> Diese Woche</div>
+      <div class="sidebar-item"><span class="icon">🎯</span> Ziele</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">KI-Coaching</div>
+      <div class="sidebar-item"><span class="icon">🤖</span> KI-Assistent <span class="badge-coming-soon">bald</span></div>
+      <div class="sidebar-item"><span class="icon">📊</span> Analyse <span class="badge-coming-soon">bald</span></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Einstellungen</div>
+      <div class="sidebar-item"><span class="icon">⚙️</span> Einstellungen</div>
+    </div>
+  </nav>
+
+  <main class="content">
+    <div class="page-title">Guten Tag! 👋</div>
+    <div class="page-subtitle">Hier ist dein Plan für heute – <span id="datum"></span></div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-label">Offene Aufgaben</div>
+        <div class="card-value">5</div>
+        <div class="card-sub">2 fällig heute</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Erledigt heute</div>
+        <div class="card-value">3</div>
+        <div class="card-sub">+1 gegenüber gestern</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Fokuszeit</div>
+        <div class="card-value">2h</div>
+        <div class="card-sub">geplant heute</div>
+      </div>
+    </div>
+
+    <div class="task-panel">
+      <div class="task-panel-header">
+        <h2>Heutige Aufgaben</h2>
+        <button class="btn">+ Aufgabe</button>
+      </div>
+      <div class="task-list">
+        <div class="task-item">
+          <div class="task-check done"></div>
+          <div class="task-text done">Docker-Image stabilisieren</div>
+          <div class="task-tag">Infrastruktur</div>
+        </div>
+        <div class="task-item">
+          <div class="task-check done"></div>
+          <div class="task-text done">Statische Seite deployen</div>
+          <div class="task-tag">Web</div>
+        </div>
+        <div class="task-item">
+          <div class="task-check done"></div>
+          <div class="task-text done">GitHub Actions reparieren</div>
+          <div class="task-tag">CI/CD</div>
+        </div>
+        <div class="task-item">
+          <div class="task-check"></div>
+          <div class="task-text">Supabase-Anbindung einbauen</div>
+          <div class="task-tag">Backend</div>
+        </div>
+        <div class="task-item">
+          <div class="task-check"></div>
+          <div class="task-text">KI-Coaching implementieren</div>
+          <div class="task-tag">Feature</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const d = new Date();
+  document.getElementById('datum').textContent =
+    d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+</script>
+
+</body>
+</html>
