@@ -9,6 +9,9 @@ class Project {
     this.goal,
     this.notes,
     this.shortCode,
+    this.plannedYear,
+    this.plannedQuarter,
+    this.priority,
   });
 
   final String id;
@@ -23,6 +26,13 @@ class Project {
   final String? goal;
   final String? notes;
   final String? shortCode;
+  final int? plannedYear;
+
+  /// 1–4
+  final int? plannedQuarter;
+
+  /// high | medium | low
+  final String? priority;
 
   factory Project.fromMap(Map<String, dynamic> map) {
     return Project(
@@ -34,6 +44,9 @@ class Project {
       goal: map['goal'] as String?,
       notes: map['notes'] as String?,
       shortCode: map['short_code'] as String?,
+      plannedYear: map['planned_year'] as int?,
+      plannedQuarter: map['planned_quarter'] as int?,
+      priority: map['priority'] as String?,
     );
   }
 }
