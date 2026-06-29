@@ -20,6 +20,8 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
   final _service = TaskService();
   final _projects = ProjectService();
   late Future<_TagesplanData> _future;
+  bool _allCollapsed = false;
+  int _collapseGen = 0;
 
   @override
   void initState() {
@@ -41,6 +43,11 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
     setState(() => _future = _load());
     await _future;
   }
+
+  void _toggleAll() => setState(() {
+        _allCollapsed = !_allCollapsed;
+        _collapseGen++;
+      });
 
   Future<void> _toggleDone(Task task, bool done) async {
     await _service.setStatus(task.id, done ? 'done' : 'open');
@@ -93,6 +100,7 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        CollapseButton(collapsed: _allCollapsed, onTap: _toggleAll),
         for (final key in keys)
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -103,8 +111,8 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
               side: BorderSide(color: theme.colorScheme.outlineVariant),
             ),
             child: ExpansionTile(
-              key: PageStorageKey<String>('tagesplan_${key ?? 'none'}'),
-              initiallyExpanded: true,
+              key: ValueKey('tagesplan_${key ?? 'none'}_$_collapseGen'),
+              initiallyExpanded: !_allCollapsed,
               backgroundColor: headerColor.withOpacity(0.25),
               collapsedBackgroundColor: headerColor,
               iconColor: onHeader,
