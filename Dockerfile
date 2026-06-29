@@ -16,10 +16,9 @@ RUN flutter create --platforms=web . \
 # ---- Runtime-Stage: Nginx ----
 FROM nginx:alpine
 
-RUN apk add --no-cache socat \
-    && apk add --no-cache \
-       --repository=https://dl-cdn.alpinelinux.org/alpine/latest-stable/community \
-       qrencode
+RUN apk add --no-cache socat python3 \
+    && python3 -m ensurepip \
+    && pip3 install --no-cache-dir qrcode
 
 COPY --from=build /app/build/web /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
