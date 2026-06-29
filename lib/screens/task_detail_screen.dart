@@ -169,7 +169,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String?>(
-                  initialValue: _size,
+                  value: _size,
                   decoration: const InputDecoration(
                       labelText: 'Größe', border: OutlineInputBorder()),
                   items: [
@@ -186,7 +186,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String?>(
-                  initialValue: _context,
+                  value: _context,
                   decoration: const InputDecoration(
                       labelText: 'Kontext', border: OutlineInputBorder()),
                   items: [
