@@ -10,7 +10,8 @@ COPY . .
 
 RUN flutter create --platforms=web . \
  && flutter pub get \
- && flutter build web --release --pwa-strategy=none
+ && flutter build web --release --pwa-strategy=none \
+     --dart-define=SUPABASE_PUBLISHABLE_KEY=SUPABASE_KEY_PLACEHOLDER
 
 # ---- Runtime-Stage: Nginx ----
 FROM nginx:alpine

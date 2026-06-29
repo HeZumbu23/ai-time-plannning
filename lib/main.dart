@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+const _supabaseUrl = 'https://vnfkkujtkbgkqafbbipj.supabase.co';
+const _supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (_supabaseKey.isNotEmpty) {
+    await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseKey);
+  }
+
   runApp(const App());
 }
 
@@ -22,10 +32,12 @@ class App extends StatelessWidget {
           foregroundColor: Colors.white,
           title: const Text('ai-time-plannning'),
         ),
-        body: const Center(
+        body: Center(
           child: Text(
-            'Flutter Skeleton läuft ✓',
-            style: TextStyle(fontSize: 24),
+            _supabaseKey.isNotEmpty
+                ? 'Supabase verbunden ✓'
+                : 'Kein Supabase Key – nur UI-Modus',
+            style: const TextStyle(fontSize: 20),
           ),
         ),
       ),
