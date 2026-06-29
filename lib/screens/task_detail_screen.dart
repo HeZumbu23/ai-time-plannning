@@ -136,7 +136,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            initialValue: _status,
+            value: _status,
             decoration: const InputDecoration(
                 labelText: 'Status', border: OutlineInputBorder()),
             items: _statuses
@@ -149,7 +149,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String?>(
-            initialValue: _daySection,
+            value: _daySection,
             decoration: const InputDecoration(
                 labelText: 'Tagesabschnitt', border: OutlineInputBorder()),
             items: [

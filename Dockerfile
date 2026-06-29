@@ -16,11 +16,14 @@ RUN flutter create --platforms=web . \
 # ---- Runtime-Stage: Nginx ----
 FROM nginx:alpine
 
+RUN apk add --no-cache qrencode socat
+
 COPY --from=build /app/build/web /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY qr-trigger.sh /usr/local/bin/qr-trigger.sh
 
-RUN chmod +x /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh /usr/local/bin/qr-trigger.sh
 
 EXPOSE 80
 
