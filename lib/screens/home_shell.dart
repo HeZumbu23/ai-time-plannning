@@ -1,36 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-import 'backlog_screen.dart';
-import 'chat_screen.dart';
-import 'projekte_screen.dart';
-import 'tagesplan_screen.dart';
-import 'wochenplan_screen.dart';
+/// Haupt-Navigation mit URL-basierter History für den Browser.
+/// Jedes Tab hat eine eigene URL: / | /wochenplan | /backlog | /projekte | /chat
+class HomeShell extends StatelessWidget {
+  const HomeShell({super.key, required this.navigationShell});
 
-/// Haupt-Navigation: Tagesplan | Wochenplan | Backlog | Projekte | Chat
-class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
-
-  @override
-  State<HomeShell> createState() => _HomeShellState();
-}
-
-class _HomeShellState extends State<HomeShell> {
-  int _index = 0;
+  final StatefulNavigationShell navigationShell;
 
   static const _titles = [
     'Tagesplan',
     'Wochenplan',
     'Backlog',
     'Projekte',
-    'Chat'
-  ];
-
-  final _screens = const [
-    TagesplanScreen(),
-    WochenplanScreen(),
-    BacklogScreen(),
-    ProjekteScreen(),
-    ChatScreen(),
+    'Chat',
   ];
 
   static const _destinations = [
@@ -56,15 +39,25 @@ class _HomeShellState extends State<HomeShell> {
         label: 'Chat'),
   ];
 
+  void _onSelect(int index) {
+    navigationShell.goBranch(
+      index,
+      // Nochmaliges Tippen auf aktiven Tab → zurück zur Tab-Root
+      initialLocation: index == navigationShell.currentIndex,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 720;
 
-    final appBar = AppBar(
-      title: Text(_titles[_index]),
-    );
+    // WochenplanScreen bringt seinen eigenen AppBar (mit Wochennavigation) mit,
+    // daher zeigen wir den Shell-AppBar nur für die anderen Tabs.
+    final showShellAppBar = navigationShell.currentIndex != 1;
 
-    final body = IndexedStack(index: _index, children: _screens);
+    final appBar = showShellAppBar
+        ? AppBar(title: Text(_titles[navigationShell.currentIndex]))
+        : null;
 
     if (wide) {
       return Scaffold(
@@ -72,8 +65,8 @@ class _HomeShellState extends State<HomeShell> {
         body: Row(
           children: [
             NavigationRail(
-              selectedIndex: _index,
-              onDestinationSelected: (i) => setState(() => _index = i),
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: _onSelect,
               labelType: NavigationRailLabelType.all,
               destinations: _destinations
                   .map((d) => NavigationRailDestination(
@@ -84,7 +77,7 @@ class _HomeShellState extends State<HomeShell> {
                   .toList(),
             ),
             const VerticalDivider(width: 1),
-            Expanded(child: body),
+            Expanded(child: navigationShell),
           ],
         ),
       );
@@ -92,10 +85,10 @@ class _HomeShellState extends State<HomeShell> {
 
     return Scaffold(
       appBar: appBar,
-      body: body,
+      body: navigationShell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: _onSelect,
         destinations: _destinations,
       ),
     );
