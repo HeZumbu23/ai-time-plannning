@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase/supabase.dart';
 
 const _supabaseUrl = 'https://vnfkkujtkbgkqafbbipj.supabase.co';
 const _supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+
+// Globaler Client – wird in main() initialisiert wenn Key vorhanden
+SupabaseClient? supabaseClient;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (_supabaseKey.isNotEmpty) {
-    await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseKey);
+    supabaseClient = SupabaseClient(_supabaseUrl, _supabaseKey);
   }
 
   runApp(const App());
@@ -34,8 +37,8 @@ class App extends StatelessWidget {
         ),
         body: Center(
           child: Text(
-            _supabaseKey.isNotEmpty
-                ? 'Supabase verbunden ✓'
+            supabaseClient != null
+                ? 'Supabase Client bereit ✓'
                 : 'Kein Key konfiguriert',
             style: const TextStyle(fontSize: 20),
           ),
