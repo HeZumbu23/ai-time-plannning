@@ -37,13 +37,39 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
     ));
   }
 
-  Future<void> _createNewProject() async {
-    final newProject = Project(
-      id: '',
-      name: '',
+  Future<void> _editGoal(Project project) async {
+    final ctrl = TextEditingController(text: project.goal ?? '');
+    final saved = await showDialog<String?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${project.icon ?? '📁'}  ${project.name}'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Ziel',
+            hintText: 'Was soll dieses Projekt erreichen?',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Abbrechen')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+              child: const Text('Speichern')),
+        ],
+      ),
     );
-    // Öffne Detail-Dialog für neues Projekt
-    // (würde ProjectDetailScreen mit edit-Modus brauchen)
+    if (saved != null) {
+      await _service.updateProject(project.id, {'goal': saved.isEmpty ? null : saved});
+      await _refresh();
+    }
+  }
+
+  Future<void> _createNewProject() async {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Neue Projekte müssen noch implementiert werden')),
     );
@@ -75,7 +101,28 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
                   leading: Text(p.icon ?? '📁',
                       style: const TextStyle(fontSize: 22)),
                   title: Text(p.name),
-                  subtitle: p.goal != null ? Text(p.goal!) : null,
+                  subtitle: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          p.goal ?? 'Kein Ziel erfasst',
+                          style: p.goal == null
+                              ? TextStyle(
+                                  color: Theme.of(context).colorScheme.outline,
+                                  fontStyle: FontStyle.italic,
+                                )
+                              : null,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        tooltip: 'Ziel bearbeiten',
+                        onPressed: () => _editGoal(p),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
+                  ),
                   trailing: _StatusChip(status: p.status),
                   onTap: () => _openProject(p),
                 );

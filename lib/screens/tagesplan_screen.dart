@@ -71,28 +71,33 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
     await _openDetail(newTask);
   }
 
-  // Bevorzugte Reihenfolge der Kontexte; Unbekanntes danach, "ohne" ganz hinten.
-  static const _contextOrder = ['büro', 'stadt', 'samstag', 'sonntag', 'flexibel'];
+  static const _sections = ['vormittag', 'nachmittag', 'abend'];
+  static const _sectionLabel = {
+    'vormittag': 'Vormittag',
+    'nachmittag': 'Nachmittag',
+    'abend': 'Abend',
+    null: 'Ohne Abschnitt',
+  };
+  static const _sectionIcon = {
+    'vormittag': '🌅',
+    'nachmittag': '☀️',
+    'abend': '🌙',
+    null: '📥',
+  };
 
-  /// Tasks nach Kontext gruppiert mit einklappbaren Gruppen.
+  /// Tasks nach Tagesabschnitt gruppiert (Vormittag / Nachmittag / Abend).
   Widget _buildGrouped(_TagesplanData data) {
     final theme = Theme.of(context);
     final groups = <String?, List<Task>>{};
     for (final t in data.tasks) {
-      (groups[t.context] ??= []).add(t);
+      (groups[t.daySection] ??= []).add(t);
     }
 
-    int rank(String? c) {
-      if (c == null) return 1000; // "ohne Kontext" ans Ende
-      final i = _contextOrder.indexOf(c);
-      return i == -1 ? 500 : i;
-    }
-
-    final keys = groups.keys.toList()
-      ..sort((a, b) {
-        final r = rank(a).compareTo(rank(b));
-        return r != 0 ? r : (a ?? '').compareTo(b ?? '');
-      });
+    // Feste Reihenfolge: Vormittag → Nachmittag → Abend → ohne
+    final keys = [
+      ..._sections.where(groups.containsKey),
+      if (groups.containsKey(null)) null,
+    ];
 
     final headerColor = theme.colorScheme.secondaryContainer;
     final onHeader = theme.colorScheme.onSecondaryContainer;
@@ -120,11 +125,11 @@ class _TagesplanScreenState extends State<TagesplanScreen> {
               tilePadding: const EdgeInsets.symmetric(horizontal: 14),
               childrenPadding: EdgeInsets.zero,
               leading: Text(
-                key == null ? '📥' : '📍',
+                _sectionIcon[key]!,
                 style: const TextStyle(fontSize: 20),
               ),
               title: Text(
-                key == null ? 'Ohne Kontext' : key,
+                _sectionLabel[key]!,
                 style: theme.textTheme.titleSmall
                     ?.copyWith(fontWeight: FontWeight.bold, color: onHeader),
               ),

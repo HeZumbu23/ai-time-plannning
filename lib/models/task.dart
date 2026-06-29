@@ -18,6 +18,7 @@ class Task {
     this.dependsOn,
     this.doneAt,
     this.createdAt,
+    this.daySection,
   });
 
   final String id;
@@ -43,6 +44,9 @@ class Task {
   final int? dependsOn;
   final DateTime? doneAt;
   final DateTime? createdAt;
+
+  /// Tagesabschnitt: vormittag | nachmittag | abend
+  final String? daySection;
 
   bool get isDone => status == 'done';
 
@@ -71,6 +75,7 @@ class Task {
       dependsOn: map['depends_on'] as int?,
       doneAt: _parseDate(map['done_at']),
       createdAt: _parseDate(map['created_at']),
+      daySection: map['day_section'] as String?,
     );
   }
 }

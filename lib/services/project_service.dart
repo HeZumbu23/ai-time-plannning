@@ -24,4 +24,8 @@ class ProjectService {
         .order('name');
     return rows.map<Project>((r) => Project.fromMap(r)).toList();
   }
+
+  Future<void> updateProject(String id, Map<String, dynamic> patch) async {
+    await _client.from('projects').update(patch).eq('id', id);
+  }
 }

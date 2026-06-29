@@ -28,10 +28,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
   bool _saving = false;
   bool _changed = false;
+  String? _daySection;
 
   static const _statuses = ['open', 'done', 'backlog', 'blocked'];
   static const _sizes = ['S', 'M', 'L'];
   static const _contexts = ['büro', 'stadt', 'samstag', 'sonntag', 'flexibel'];
+  static const _daySections = ['vormittag', 'nachmittag', 'abend'];
 
   @override
   void initState() {
@@ -45,6 +47,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     _nextAction = t.nextAction;
     _plannedDay = t.plannedDay;
     _deadline = t.deadlineDate;
+    _daySection = t.daySection;
   }
 
   @override
@@ -72,6 +75,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         'planned_day': _plannedDay == null ? null : _fmt(_plannedDay!),
         'deadline_date': _deadline == null ? null : _fmt(_deadline!),
         'done_at': _status == 'done' ? DateTime.now().toIso8601String() : null,
+        'day_section': _daySection,
       };
       await _service.updateFields(widget.task.id, patch);
       if (mounted) Navigator.of(context).pop(true);
@@ -140,6 +144,23 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 .toList(),
             onChanged: (v) {
               if (v != null) setState(() => _status = v);
+              _markChanged();
+            },
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String?>(
+            initialValue: _daySection,
+            decoration: const InputDecoration(
+                labelText: 'Tagesabschnitt', border: OutlineInputBorder()),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('—')),
+              ..._daySections.map((s) => DropdownMenuItem(
+                    value: s,
+                    child: Text(s[0].toUpperCase() + s.substring(1)),
+                  )),
+            ],
+            onChanged: (v) {
+              setState(() => _daySection = v);
               _markChanged();
             },
           ),
