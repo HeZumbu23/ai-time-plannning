@@ -69,7 +69,7 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
     final currentQuarter = (now.month - 1) ~/ 3 + 1;
 
     // Default timeline: current quarter → Q4 of next year → year+2 catch-all
-    final defaultKeys = <String?>[null];
+    final defaultKeys = <String?>[];
     for (var q = currentQuarter; q <= 4; q++) {
       defaultKeys.add('$currentYear-$q');
     }
@@ -81,14 +81,15 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
     // Add groups for projects that fall outside the default range
     final projectKeys =
         _projects.map((p) => _encodeKey(p.plannedYear, p.plannedQuarter)).toSet();
-    final extraKeys = (projectKeys.difference(defaultKeys.toSet())).toList()
+    final extraKeys = (projectKeys.difference({...defaultKeys, null})).toList()
       ..sort((a, b) {
-        if (a == null) return -1;
-        if (b == null) return 1;
+        if (a == null) return 1;
+        if (b == null) return -1;
         return a.compareTo(b);
       });
 
-    final allKeys = [...defaultKeys, ...extraKeys];
+    // Backlog goes last
+    final allKeys = [...defaultKeys, ...extraKeys, null];
 
     // Distribute projects into groups, sorted by priority then name
     final grouped = <String?, List<Project>>{
@@ -117,10 +118,20 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
         .toList();
   }
 
+  static const _quarterMonths = {
+    1: 'Jan/Feb/Mär',
+    2: 'Apr/Mai/Jun',
+    3: 'Jul/Aug/Sep',
+    4: 'Okt/Nov/Dez',
+  };
+
   static String _groupTitle(String? key) {
     if (key == null) return 'Backlog';
     final parts = key.split('-');
-    return parts.length == 1 ? 'Jahr ${parts[0]}' : 'Q${parts[1]} ${parts[0]}';
+    if (parts.length == 1) return 'Jahr ${parts[0]}';
+    final q = int.parse(parts[1]);
+    final months = _quarterMonths[q] ?? '';
+    return 'Q$q ${parts[0]}  ·  $months';
   }
 
   static String _groupIcon(String? key) {
