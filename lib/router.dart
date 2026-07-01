@@ -6,6 +6,7 @@ import 'screens/api_key_screen.dart';
 import 'screens/backlog_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/home_shell.dart';
+import 'screens/login_screen.dart';
 import 'screens/projekte_screen.dart';
 import 'screens/tagesplan_screen.dart';
 import 'screens/wochenplan_screen.dart';
@@ -14,8 +15,13 @@ import 'screens/wochenplan_screen.dart';
 final appRouter = GoRouter(
   initialLocation: '/',
   redirect: (context, state) {
-    if (!isSupabaseInitialized && state.matchedLocation != '/setup') {
-      return '/setup';
+    final loc = state.matchedLocation;
+    if (!isSupabaseInitialized && loc != '/setup') return '/setup';
+    if (isSupabaseInitialized &&
+        supabaseClient.auth.currentSession == null &&
+        loc != '/login' &&
+        loc != '/setup') {
+      return '/login';
     }
     return null;
   },
@@ -23,6 +29,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/setup',
       builder: (_, __) => const ApiKeyScreen(),
+    ),
+    GoRoute(
+      path: '/login',
+      builder: (_, __) => const LoginScreen(),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
