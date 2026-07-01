@@ -13,6 +13,7 @@ class HomeShell extends StatelessWidget {
   static const _titles = [
     'Wochenplan',
     'Backlog',
+    'Quartalsplanung',
     'Projekte',
     'Chat',
   ];
@@ -21,11 +22,15 @@ class HomeShell extends StatelessWidget {
     NavigationDestination(
         icon: Icon(Icons.view_week_outlined),
         selectedIcon: Icon(Icons.view_week),
-        label: 'Wochenplan'),
+        label: 'Woche'),
     NavigationDestination(
         icon: Icon(Icons.inbox_outlined),
         selectedIcon: Icon(Icons.inbox),
         label: 'Backlog'),
+    NavigationDestination(
+        icon: Icon(Icons.calendar_view_month_outlined),
+        selectedIcon: Icon(Icons.calendar_view_month),
+        label: 'Quartale'),
     NavigationDestination(
         icon: Icon(Icons.folder_outlined),
         selectedIcon: Icon(Icons.folder),
