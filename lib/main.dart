@@ -4,6 +4,7 @@ import 'package:supabase/supabase.dart';
 import 'config/supabase_client.dart';
 import 'router.dart';
 import 'services/key_storage.dart';
+import 'services/session_storage.dart';
 
 const _supabaseUrl = 'https://vnfkkujtkbgkqafbbipj.supabase.co';
 
@@ -19,7 +20,11 @@ Future<void> main() async {
   }
 
   if (key.isNotEmpty) {
-    initSupabaseClient(SupabaseClient(_supabaseUrl, key));
+    initSupabaseClient(SupabaseClient(
+      _supabaseUrl,
+      key,
+      authOptions: AuthClientOptions(localStorage: SharedPrefsSessionStorage()),
+    ));
   }
 
   runApp(const App());
