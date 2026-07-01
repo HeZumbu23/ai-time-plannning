@@ -7,6 +7,7 @@ import 'screens/backlog_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/projekte_screen.dart';
+import 'screens/quartalplan_screen.dart';
 import 'screens/wochenplan_screen.dart';
 
 /// App-Router: Jedes Tab hat seine eigene URL → Browser-History funktioniert.
@@ -37,6 +38,12 @@ final appRouter = GoRouter(
           GoRoute(
             path: '/backlog',
             builder: (_, __) => const BacklogScreen(),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: '/quartale',
+            builder: (_, __) => const QuartalplanScreen(),
           ),
         ]),
         StatefulShellBranch(routes: [

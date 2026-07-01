@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../models/milestone.dart';
 import '../models/project.dart';
 import '../models/task.dart';
+import '../services/milestone_service.dart';
 import '../services/project_service.dart';
 import '../services/task_service.dart';
-import '../widgets/project_roadmap_list.dart';
 import '../widgets/status_views.dart';
 import '../widgets/task_tile.dart';
 import 'task_detail_screen.dart';
@@ -35,141 +36,17 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
     });
     try {
       final projects = await _service.all();
-      if (mounted) setState(() {
-        _projects = projects;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _projects = projects;
+          _loading = false;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() {
         _error = e;
         _loading = false;
       });
-    }
-  }
-
-  // ── Group key encoding ──────────────────────────────────────────────────────
-
-  static String? _encodeKey(int? year, int? quarter) =>
-      year == null ? null : quarter == null ? '$year' : '$year-$quarter';
-
-  static ({int? year, int? quarter}) _decodeKey(String? key) {
-    if (key == null) return (year: null, quarter: null);
-    final parts = key.split('-');
-    return (
-      year: int.parse(parts[0]),
-      quarter: parts.length > 1 ? int.parse(parts[1]) : null,
-    );
-  }
-
-  // ── Group building ──────────────────────────────────────────────────────────
-
-  List<ProjectRoadmapEntry> _buildGroups() {
-    final now = DateTime.now();
-    final currentYear = now.year;
-    final currentQuarter = (now.month - 1) ~/ 3 + 1;
-
-    // Default timeline: current quarter → Q4 of next year → year+2 catch-all
-    final defaultKeys = <String?>[];
-    for (var q = currentQuarter; q <= 4; q++) {
-      defaultKeys.add('$currentYear-$q');
-    }
-    for (var q = 1; q <= 4; q++) {
-      defaultKeys.add('${currentYear + 1}-$q');
-    }
-    defaultKeys.add('${currentYear + 2}');
-
-    // Add groups for projects that fall outside the default range
-    final projectKeys =
-        _projects.map((p) => _encodeKey(p.plannedYear, p.plannedQuarter)).toSet();
-    final extraKeys = (projectKeys.difference({...defaultKeys, null})).toList()
-      ..sort((a, b) {
-        if (a == null) return 1;
-        if (b == null) return -1;
-        return a.compareTo(b);
-      });
-
-    // Backlog goes last
-    final allKeys = [...defaultKeys, ...extraKeys, null];
-
-    // Distribute projects into groups, sorted by priority then name
-    final grouped = <String?, List<Project>>{
-      for (final k in allKeys) k: [],
-    };
-    for (final p in _projects) {
-      (grouped[_encodeKey(p.plannedYear, p.plannedQuarter)] ??= []).add(p);
-    }
-    const _priorityOrder = {'high': 0, 'medium': 1, 'low': 2};
-    for (final list in grouped.values) {
-      list.sort((a, b) {
-        final pa = _priorityOrder[a.priority] ?? 3;
-        final pb = _priorityOrder[b.priority] ?? 3;
-        if (pa != pb) return pa.compareTo(pb);
-        return a.name.compareTo(b.name);
-      });
-    }
-
-    return allKeys
-        .map((k) => ProjectRoadmapEntry(
-              key: k,
-              title: _groupTitle(k),
-              icon: _groupIcon(k),
-              projects: grouped[k]!,
-            ))
-        .toList();
-  }
-
-  static const _quarterMonths = {
-    1: 'Jan/Feb/Mär',
-    2: 'Apr/Mai/Jun',
-    3: 'Jul/Aug/Sep',
-    4: 'Okt/Nov/Dez',
-  };
-
-  static String _groupTitle(String? key) {
-    if (key == null) return 'Backlog';
-    final parts = key.split('-');
-    if (parts.length == 1) return 'Jahr ${parts[0]}';
-    final q = int.parse(parts[1]);
-    final months = _quarterMonths[q] ?? '';
-    return 'Q$q ${parts[0]}  ·  $months';
-  }
-
-  static String _groupIcon(String? key) {
-    if (key == null) return '📋';
-    final parts = key.split('-');
-    if (parts.length == 1) return '📅';
-    return switch (int.parse(parts[1])) {
-      1 => '❄️',
-      2 => '🌱',
-      3 => '☀️',
-      4 => '🍂',
-      _ => '📅',
-    };
-  }
-
-  // ── Actions ─────────────────────────────────────────────────────────────────
-
-  Future<void> _moveProject(Project project, String? newKey) async {
-    final (:year, :quarter) = _decodeKey(newKey);
-    await _service.updateProject(project.id, {
-      'planned_year': year,
-      'planned_quarter': quarter,
-    });
-    await _load();
-  }
-
-  Future<void> _addProject(String? groupKey) async {
-    final (:year, :quarter) = _decodeKey(groupKey);
-    final data = await showDialog<Map<String, dynamic>?>(
-      context: context,
-      builder: (ctx) => _NewProjectDialog(
-        initialYear: year,
-        initialQuarter: quarter,
-      ),
-    );
-    if (data != null) {
-      await _service.createProject(data);
-      await _load();
     }
   }
 
@@ -181,24 +58,106 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
         .then((_) => _load());
   }
 
-  // ── Build ────────────────────────────────────────────────────────────────────
+  Future<void> _addProject() async {
+    final data = await showDialog<Map<String, dynamic>?>(
+      context: context,
+      builder: (_) => const _NewProjectDialog(),
+    );
+    if (data != null) {
+      await _service.createProject(data);
+      await _load();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return ErrorView(error: _error!, onRetry: _load);
-    }
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ProjectRoadmapList(
-        groups: _buildGroups(),
-        onMove: _moveProject,
-        onTap: _openProject,
-        onAddProject: _addProject,
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) return ErrorView(error: _error!, onRetry: _load);
+
+    const statusOrder = {'active': 0, 'backlog': 1, 'done': 2};
+    final sorted = [..._projects]..sort((a, b) {
+        final sa = statusOrder[a.status] ?? 1;
+        final sb = statusOrder[b.status] ?? 1;
+        if (sa != sb) return sa.compareTo(sb);
+        return a.name.compareTo(b.name);
+      });
+
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: sorted.isEmpty
+            ? const EmptyView(message: 'Noch keine Projekte.')
+            : ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: sorted.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (_, i) {
+                  final p = sorted[i];
+                  return ListTile(
+                    leading: Text(p.icon ?? '📁',
+                        style: const TextStyle(fontSize: 22)),
+                    title: Text(p.name),
+                    subtitle: p.goal != null && p.goal!.isNotEmpty
+                        ? Text(p.goal!,
+                            maxLines: 1, overflow: TextOverflow.ellipsis)
+                        : null,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (p.size != null) _SizeChip(p.size!),
+                        if (p.priority != null) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            switch (p.priority!) {
+                              'high' => '🔴',
+                              'medium' => '🟡',
+                              'low' => '🟢',
+                              _ => '',
+                            },
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                        if (p.status == 'done') ...[
+                          const SizedBox(width: 4),
+                          const Icon(Icons.check_circle_outline,
+                              size: 16, color: Colors.green),
+                        ],
+                      ],
+                    ),
+                    onTap: () => _openProject(p),
+                  );
+                },
+              ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addProject,
+        tooltip: 'Neues Projekt',
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class _SizeChip extends StatelessWidget {
+  const _SizeChip(this.size);
+  final String size;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = switch (size) {
+      'S' => theme.colorScheme.tertiaryContainer,
+      'M' => theme.colorScheme.secondaryContainer,
+      'L' => theme.colorScheme.primaryContainer,
+      _ => theme.colorScheme.surfaceContainer,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration:
+          BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+      child: Text(size,
+          style: theme.textTheme.labelSmall
+              ?.copyWith(fontWeight: FontWeight.bold)),
     );
   }
 }
@@ -206,9 +165,7 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
 // ── New Project Dialog ────────────────────────────────────────────────────────
 
 class _NewProjectDialog extends StatefulWidget {
-  const _NewProjectDialog({this.initialYear, this.initialQuarter});
-  final int? initialYear;
-  final int? initialQuarter;
+  const _NewProjectDialog();
 
   @override
   State<_NewProjectDialog> createState() => _NewProjectDialogState();
@@ -241,21 +198,13 @@ class _NewProjectDialogState extends State<_NewProjectDialog> {
       'size': _size,
       'priority': _priority,
       'status': 'active',
-      if (widget.initialYear != null) 'planned_year': widget.initialYear,
-      if (widget.initialQuarter != null) 'planned_quarter': widget.initialQuarter,
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final groupLabel = widget.initialYear == null
-        ? 'Backlog'
-        : widget.initialQuarter == null
-            ? 'Jahr ${widget.initialYear}'
-            : 'Q${widget.initialQuarter} ${widget.initialYear}';
-
     return AlertDialog(
-      title: Text('Neues Projekt – $groupLabel'),
+      title: const Text('Neues Projekt'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -309,8 +258,7 @@ class _NewProjectDialogState extends State<_NewProjectDialog> {
                         labelText: 'Priorität', border: OutlineInputBorder()),
                     items: const [
                       DropdownMenuItem(value: null, child: Text('—')),
-                      DropdownMenuItem(
-                          value: 'high', child: Text('🔴 Hoch')),
+                      DropdownMenuItem(value: 'high', child: Text('🔴 Hoch')),
                       DropdownMenuItem(
                           value: 'medium', child: Text('🟡 Mittel')),
                       DropdownMenuItem(
@@ -349,20 +297,65 @@ class ProjectDetailScreen extends StatefulWidget {
 class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final _taskService = TaskService();
   final _projectService = ProjectService();
+  final _milestoneService = MilestoneService();
   late Project _project;
-  late Future<List<Task>> _future;
+  late Future<(List<Milestone>, List<Task>)> _future;
 
   @override
   void initState() {
     super.initState();
     _project = widget.project;
-    _future = _taskService.tasksForProject(_project.id);
+    _future = _loadAll();
+  }
+
+  Future<(List<Milestone>, List<Task>)> _loadAll() async {
+    final results = await Future.wait([
+      _milestoneService.forProject(_project.id),
+      _taskService.tasksForProject(_project.id),
+    ]);
+    return (results[0] as List<Milestone>, results[1] as List<Task>);
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _taskService.tasksForProject(_project.id));
+    setState(() => _future = _loadAll());
     await _future;
   }
+
+  // ── Milestones ───────────────────────────────────────────────────────────────
+
+  Future<void> _addMilestone() async {
+    final data = await showDialog<Map<String, dynamic>?>(
+      context: context,
+      builder: (_) => _MilestoneDialog(projectId: _project.id),
+    );
+    if (data != null) {
+      await _milestoneService.create(data);
+      await _refresh();
+    }
+  }
+
+  Future<void> _editMilestone(Milestone milestone) async {
+    final data = await showDialog<Map<String, dynamic>?>(
+      context: context,
+      builder: (_) => _MilestoneDialog(
+          projectId: _project.id, existing: milestone),
+    );
+    if (data == null) return;
+    if (data.containsKey('_delete')) {
+      await _milestoneService.delete(milestone.id);
+    } else {
+      await _milestoneService.update(milestone.id, data);
+    }
+    await _refresh();
+  }
+
+  Future<void> _toggleMilestone(Milestone milestone) async {
+    await _milestoneService
+        .update(milestone.id, {'status': milestone.isDone ? 'open' : 'done'});
+    await _refresh();
+  }
+
+  // ── Tasks ────────────────────────────────────────────────────────────────────
 
   Future<void> _toggleDone(Task task, bool done) async {
     await _taskService.setStatus(task.id, done ? 'done' : 'open');
@@ -385,6 +378,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     ));
   }
 
+  // ── Project edit ─────────────────────────────────────────────────────────────
+
   Future<void> _editProject() async {
     await showModalBottomSheet(
       context: context,
@@ -393,8 +388,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         project: _project,
         onSave: (patch) async {
           await _projectService.updateProject(_project.id, patch);
-          // Reload project from service isn't available as a single-item fetch,
-          // so apply the patch locally.
           setState(() {
             _project = Project(
               id: _project.id,
@@ -425,6 +418,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     );
   }
 
+  // ── Build ────────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -440,7 +435,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
-        child: FutureBuilder<List<Task>>(
+        child: FutureBuilder<(List<Milestone>, List<Task>)>(
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -449,18 +444,33 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             if (snapshot.hasError) {
               return ErrorView(error: snapshot.error!, onRetry: _refresh);
             }
-            final tasks = snapshot.data!;
-            if (tasks.isEmpty) {
-              return const EmptyView(message: 'Keine Tasks in diesem Projekt.');
-            }
-            return ListView.builder(
-              itemCount: tasks.length,
-              itemBuilder: (context, i) => TaskTile(
-                task: tasks[i],
-                shaded: i.isOdd,
-                onTap: () => _openDetail(tasks[i]),
-                onToggleDone: (v) => _toggleDone(tasks[i], v),
-              ),
+            final (milestones, tasks) = snapshot.data!;
+            return ListView(
+              children: [
+                _MilestonesSection(
+                  milestones: milestones,
+                  onAdd: _addMilestone,
+                  onTap: _editMilestone,
+                  onToggle: _toggleMilestone,
+                ),
+                if (tasks.isNotEmpty) ...[
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Text('Tasks',
+                        style: Theme.of(context).textTheme.labelLarge),
+                  ),
+                  for (final (i, task) in tasks.indexed)
+                    TaskTile(
+                      task: task,
+                      shaded: i.isOdd,
+                      onTap: () => _openDetail(task),
+                      onToggleDone: (v) => _toggleDone(task, v),
+                    ),
+                ] else if (milestones.isEmpty)
+                  const EmptyView(
+                      message: 'Noch keine Tasks oder Milestones.'),
+              ],
             );
           },
         ),
@@ -470,6 +480,220 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         tooltip: 'Neue Task',
         child: const Icon(Icons.add),
       ),
+    );
+  }
+}
+
+// ── Milestones Section ────────────────────────────────────────────────────────
+
+class _MilestonesSection extends StatelessWidget {
+  const _MilestonesSection({
+    required this.milestones,
+    required this.onAdd,
+    required this.onTap,
+    required this.onToggle,
+  });
+
+  final List<Milestone> milestones;
+  final VoidCallback onAdd;
+  final void Function(Milestone) onTap;
+  final void Function(Milestone) onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+          child: Row(
+            children: [
+              Text('Milestones', style: theme.textTheme.labelLarge),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.add, size: 20),
+                onPressed: onAdd,
+                tooltip: 'Milestone hinzufügen',
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+        ),
+        if (milestones.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: Text(
+              'Noch keine Milestones.',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.outline),
+            ),
+          )
+        else
+          for (final m in milestones)
+            ListTile(
+              dense: true,
+              leading: Checkbox(
+                value: m.isDone,
+                onChanged: (_) => onToggle(m),
+                visualDensity: VisualDensity.compact,
+              ),
+              title: Text(
+                m.title,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  decoration:
+                      m.isDone ? TextDecoration.lineThrough : null,
+                  color: m.isDone ? theme.colorScheme.outline : null,
+                ),
+              ),
+              subtitle: _quarterLabel(m, theme),
+              trailing: const Icon(Icons.chevron_right, size: 18),
+              onTap: () => onTap(m),
+            ),
+      ],
+    );
+  }
+
+  Widget? _quarterLabel(Milestone m, ThemeData theme) {
+    if (m.plannedYear == null) return null;
+    final label = m.plannedQuarter != null
+        ? 'Q${m.plannedQuarter} ${m.plannedYear}'
+        : '${m.plannedYear}';
+    return Text(label,
+        style: theme.textTheme.labelSmall
+            ?.copyWith(color: theme.colorScheme.primary));
+  }
+}
+
+// ── Milestone Dialog ──────────────────────────────────────────────────────────
+
+class _MilestoneDialog extends StatefulWidget {
+  const _MilestoneDialog({required this.projectId, this.existing});
+  final String projectId;
+  final Milestone? existing;
+
+  @override
+  State<_MilestoneDialog> createState() => _MilestoneDialogState();
+}
+
+class _MilestoneDialogState extends State<_MilestoneDialog> {
+  late final TextEditingController _title;
+  late final TextEditingController _description;
+  int? _year;
+  int? _quarter;
+
+  @override
+  void initState() {
+    super.initState();
+    final m = widget.existing;
+    _title = TextEditingController(text: m?.title ?? '');
+    _description = TextEditingController(text: m?.description ?? '');
+    _year = m?.plannedYear;
+    _quarter = m?.plannedQuarter;
+    _title.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _description.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_title.text.trim().isEmpty) return;
+    Navigator.of(context).pop({
+      'project_id': widget.projectId,
+      'title': _title.text.trim(),
+      'description':
+          _description.text.trim().isEmpty ? null : _description.text.trim(),
+      'planned_year': _year,
+      'planned_quarter': _quarter,
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.existing != null;
+    return AlertDialog(
+      title: Text(isEdit ? 'Milestone bearbeiten' : 'Neuer Milestone'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _title,
+              autofocus: true,
+              decoration: const InputDecoration(
+                  labelText: 'Titel *', border: OutlineInputBorder()),
+              onSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _description,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                  labelText: 'Beschreibung', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int?>(
+                    value: _year,
+                    decoration: const InputDecoration(
+                        labelText: 'Jahr', border: OutlineInputBorder()),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('—')),
+                      for (final y in List.generate(
+                          5, (i) => DateTime.now().year + i))
+                        DropdownMenuItem(value: y, child: Text('$y')),
+                    ],
+                    onChanged: (v) => setState(() {
+                      _year = v;
+                      if (v == null) _quarter = null;
+                    }),
+                  ),
+                ),
+                if (_year != null) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<int?>(
+                      value: _quarter,
+                      decoration: const InputDecoration(
+                          labelText: 'Quartal', border: OutlineInputBorder()),
+                      items: const [
+                        DropdownMenuItem(value: null, child: Text('—')),
+                        DropdownMenuItem(value: 1, child: Text('Q1')),
+                        DropdownMenuItem(value: 2, child: Text('Q2')),
+                        DropdownMenuItem(value: 3, child: Text('Q3')),
+                        DropdownMenuItem(value: 4, child: Text('Q4')),
+                      ],
+                      onChanged: (v) => setState(() => _quarter = v),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        if (isEdit)
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context).pop({'_delete': true}),
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error),
+            child: const Text('Löschen'),
+          ),
+        TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Abbrechen')),
+        FilledButton(
+            onPressed: _title.text.trim().isEmpty ? null : _submit,
+            child: Text(isEdit ? 'Speichern' : 'Erstellen')),
+      ],
     );
   }
 }
@@ -518,15 +742,14 @@ class _ProjectEditSheetState extends State<_ProjectEditSheet> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final patch = <String, dynamic>{
+    await widget.onSave({
       'goal': _goal.text.trim().isEmpty ? null : _goal.text.trim(),
       'status': _status,
       'size': _size,
       'priority': _priority,
       'planned_year': _plannedYear,
       'planned_quarter': _plannedQuarter,
-    };
-    await widget.onSave(patch);
+    });
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -540,8 +763,7 @@ class _ProjectEditSheetState extends State<_ProjectEditSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Projekt bearbeiten',
-              style: theme.textTheme.titleMedium),
+          Text('Projekt bearbeiten', style: theme.textTheme.titleMedium),
           const SizedBox(height: 16),
           TextField(
             controller: _goal,
@@ -592,8 +814,7 @@ class _ProjectEditSheetState extends State<_ProjectEditSheet> {
                   items: const [
                     DropdownMenuItem(value: null, child: Text('—')),
                     DropdownMenuItem(value: 'high', child: Text('🔴 Hoch')),
-                    DropdownMenuItem(
-                        value: 'medium', child: Text('🟡 Mittel')),
+                    DropdownMenuItem(value: 'medium', child: Text('🟡 Mittel')),
                     DropdownMenuItem(value: 'low', child: Text('🟢 Niedrig')),
                   ],
                   onChanged: (v) => setState(() => _priority = v),
