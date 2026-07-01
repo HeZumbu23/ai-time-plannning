@@ -10,17 +10,19 @@ import 'screens/login_screen.dart';
 import 'screens/projekte_screen.dart';
 import 'screens/quartalplan_screen.dart';
 import 'screens/wochenplan_screen.dart';
+import 'services/auth_notifier.dart';
 
 /// App-Router: Jedes Tab hat seine eigene URL → Browser-History funktioniert.
 final appRouter = GoRouter(
   initialLocation: '/wochenplan',
+  refreshListenable: authNotifier,
   redirect: (context, state) {
     final loc = state.matchedLocation;
     if (!isSupabaseInitialized && loc != '/setup') return '/setup';
     final hasSession =
         isSupabaseInitialized && supabaseClient.auth.currentSession != null;
     if (!hasSession && loc != '/login' && loc != '/setup') return '/login';
-    if (hasSession && loc == '/login') return '/';
+    if (hasSession && loc == '/login') return '/wochenplan';
     return null;
   },
   routes: [

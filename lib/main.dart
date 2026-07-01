@@ -3,6 +3,7 @@ import 'package:supabase/supabase.dart';
 
 import 'config/supabase_client.dart';
 import 'router.dart';
+import 'services/auth_notifier.dart';
 import 'services/key_storage.dart';
 import 'services/session_storage.dart';
 
@@ -20,11 +21,13 @@ Future<void> main() async {
   }
 
   if (key.isNotEmpty) {
-    initSupabaseClient(SupabaseClient(
+    final client = SupabaseClient(
       _supabaseUrl,
       key,
       authOptions: AuthClientOptions(localStorage: SharedPrefsSessionStorage()),
-    ));
+    );
+    initSupabaseClient(client);
+    authNotifier.attach(client);
   }
 
   runApp(const App());

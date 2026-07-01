@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      if (mounted) GoRouter.of(context).refresh();
+      // Navigation übernimmt der Router automatisch via authNotifier/refreshListenable
     } catch (e) {
       setState(() => _error = 'Login fehlgeschlagen. Bitte E-Mail und Passwort prüfen.');
     } finally {
