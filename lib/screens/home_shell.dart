@@ -11,7 +11,6 @@ class HomeShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
   static const _titles = [
-    'Tagesplan',
     'Wochenplan',
     'Backlog',
     'Projekte',
@@ -19,10 +18,6 @@ class HomeShell extends StatelessWidget {
   ];
 
   static const _destinations = [
-    NavigationDestination(
-        icon: Icon(Icons.today_outlined),
-        selectedIcon: Icon(Icons.today),
-        label: 'Tagesplan'),
     NavigationDestination(
         icon: Icon(Icons.view_week_outlined),
         selectedIcon: Icon(Icons.view_week),
@@ -51,7 +46,7 @@ class HomeShell extends StatelessWidget {
 
   AppBar? _buildAppBar(BuildContext context) {
     // WochenplanScreen hat seinen eigenen AppBar (mit Wochennavigation).
-    if (navigationShell.currentIndex == 1) return null;
+    if (navigationShell.currentIndex == 0) return null;
 
     return AppBar(
       title: Text(_titles[navigationShell.currentIndex]),
