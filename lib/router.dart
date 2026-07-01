@@ -17,12 +17,10 @@ final appRouter = GoRouter(
   redirect: (context, state) {
     final loc = state.matchedLocation;
     if (!isSupabaseInitialized && loc != '/setup') return '/setup';
-    if (isSupabaseInitialized &&
-        supabaseClient.auth.currentSession == null &&
-        loc != '/login' &&
-        loc != '/setup') {
-      return '/login';
-    }
+    final hasSession =
+        isSupabaseInitialized && supabaseClient.auth.currentSession != null;
+    if (!hasSession && loc != '/login' && loc != '/setup') return '/login';
+    if (hasSession && loc == '/login') return '/';
     return null;
   },
   routes: [
