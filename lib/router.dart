@@ -7,12 +7,11 @@ import 'screens/backlog_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/projekte_screen.dart';
-import 'screens/tagesplan_screen.dart';
 import 'screens/wochenplan_screen.dart';
 
 /// App-Router: Jedes Tab hat seine eigene URL → Browser-History funktioniert.
 final appRouter = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/wochenplan',
   redirect: (context, state) {
     if (!isSupabaseInitialized && state.matchedLocation != '/setup') {
       return '/setup';
@@ -28,12 +27,6 @@ final appRouter = GoRouter(
       builder: (context, state, navigationShell) =>
           HomeShell(navigationShell: navigationShell),
       branches: [
-        StatefulShellBranch(routes: [
-          GoRoute(
-            path: '/',
-            builder: (_, __) => const TagesplanScreen(),
-          ),
-        ]),
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/wochenplan',
