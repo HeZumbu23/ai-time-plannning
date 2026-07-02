@@ -324,10 +324,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   // ── Milestones ───────────────────────────────────────────────────────────────
 
-  Future<void> _addMilestone() async {
+  Future<void> _addMilestone(List<Milestone> milestones) async {
     final data = await showDialog<Map<String, dynamic>?>(
       context: context,
-      builder: (_) => _MilestoneDialog(projectId: _project.id),
+      builder: (_) => _MilestoneDialog(
+        projectId: _project.id,
+        allMilestones: milestones,
+      ),
     );
     if (data != null) {
       await _milestoneService.create(data);
@@ -335,11 +338,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
-  Future<void> _editMilestone(Milestone milestone) async {
+  Future<void> _editMilestone(Milestone milestone, List<Milestone> milestones) async {
     final data = await showDialog<Map<String, dynamic>?>(
       context: context,
       builder: (_) => _MilestoneDialog(
-          projectId: _project.id, existing: milestone),
+        projectId: _project.id,
+        existing: milestone,
+        allMilestones: milestones,
+      ),
     );
     if (data == null) return;
     if (data.containsKey('_delete')) {
@@ -454,8 +460,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 project: _project,
                 milestones: milestones,
                 tasks: tasks,
-                onAddMilestone: _addMilestone,
-                onEditMilestone: _editMilestone,
+                onAddMilestone: () => _addMilestone(milestones),
+                onEditMilestone: (m) => _editMilestone(m, milestones),
                 onToggleMilestone: _toggleMilestone,
                 onToggleTask: _toggleDone,
                 onTaskTap: _openDetail,
@@ -465,8 +471,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 project: _project,
                 milestones: milestones,
                 tasks: tasks,
-                onAddMilestone: _addMilestone,
-                onEditMilestone: _editMilestone,
+                onAddMilestone: () => _addMilestone(milestones),
+                onEditMilestone: (m) => _editMilestone(m, milestones),
                 onToggleMilestone: _toggleMilestone,
                 onToggleTask: _toggleDone,
                 onTaskTap: _openDetail,
@@ -568,9 +574,14 @@ class _MilestonesSection extends StatelessWidget {
 // ── Milestone Dialog ──────────────────────────────────────────────────────────
 
 class _MilestoneDialog extends StatefulWidget {
-  const _MilestoneDialog({required this.projectId, this.existing});
+  const _MilestoneDialog({
+    required this.projectId,
+    this.existing,
+    required this.allMilestones,
+  });
   final String projectId;
   final Milestone? existing;
+  final List<Milestone> allMilestones;
 
   @override
   State<_MilestoneDialog> createState() => _MilestoneDialogState();
@@ -579,6 +590,7 @@ class _MilestoneDialog extends StatefulWidget {
 class _MilestoneDialogState extends State<_MilestoneDialog> {
   late final TextEditingController _title;
   late final TextEditingController _description;
+  String? _parentMilestoneId;
   int? _year;
   int? _quarter;
 
@@ -588,6 +600,7 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
     final m = widget.existing;
     _title = TextEditingController(text: m?.title ?? '');
     _description = TextEditingController(text: m?.description ?? '');
+    _parentMilestoneId = m?.parentMilestoneId;
     _year = m?.plannedYear;
     _quarter = m?.plannedQuarter;
     _title.addListener(() => setState(() {}));
@@ -607,6 +620,7 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
       'title': _title.text.trim(),
       'description':
           _description.text.trim().isEmpty ? null : _description.text.trim(),
+      'parent_milestone_id': _parentMilestoneId,
       'planned_year': _year,
       'planned_quarter': _quarter,
     });
@@ -634,6 +648,20 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
               maxLines: 2,
               decoration: const InputDecoration(
                   labelText: 'Beschreibung', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String?>(
+              value: _parentMilestoneId,
+              decoration: const InputDecoration(
+                  labelText: 'Parent Milestone (optional)',
+                  border: OutlineInputBorder()),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('— Kein Parent')),
+                for (final m in widget.allMilestones
+                    .where((m) => m.id != widget.existing?.id))
+                  DropdownMenuItem(value: m.id, child: Text(m.title)),
+              ],
+              onChanged: (v) => setState(() => _parentMilestoneId = v),
             ),
             const SizedBox(height: 12),
             Row(

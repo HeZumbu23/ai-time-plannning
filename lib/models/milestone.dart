@@ -5,6 +5,7 @@ class Milestone {
     required this.title,
     this.projectName,
     this.description,
+    this.parentMilestoneId,
     this.status = 'open',
     this.plannedYear,
     this.plannedQuarter,
@@ -18,6 +19,9 @@ class Milestone {
   /// Denormalisierter Projektname für die Roadmap-Ansicht.
   final String? projectName;
   final String? description;
+
+  /// Parent Milestone (für hierarchische Struktur)
+  final String? parentMilestoneId;
 
   /// open | done
   final String status;
@@ -35,6 +39,7 @@ class Milestone {
         title: title,
         projectName: projectName,
         description: description,
+        parentMilestoneId: parentMilestoneId,
         status: s,
         plannedYear: plannedYear,
         plannedQuarter: plannedQuarter,
@@ -50,6 +55,7 @@ class Milestone {
       projectName:
           projectName ?? (map['projects'] as Map?)?['name'] as String?,
       description: map['description'] as String?,
+      parentMilestoneId: map['parent_milestone_id'] as String?,
       status: (map['status'] ?? 'open') as String,
       plannedYear: map['planned_year'] as int?,
       plannedQuarter: map['planned_quarter'] as int?,
