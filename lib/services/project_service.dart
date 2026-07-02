@@ -11,8 +11,8 @@ class ProjectService {
     final rows = await _client
         .from('projects')
         .select()
-        .order('status')
-        .order('created_at');
+        .order('status', ascending: false)
+        .order('name');
     return rows.map<Project>((r) => Project.fromMap(r)).toList();
   }
 
@@ -30,11 +30,19 @@ class ProjectService {
   }
 
   Future<void> updatePosition(String id, int position) async {
-    await _client.from('projects').update({'position': position}).eq('id', id);
+    try {
+      await _client.from('projects').update({'position': position}).eq('id', id);
+    } catch (e) {
+      // Position column migration not applied yet, silently fail
+    }
   }
 
   Future<void> toggleInFocus(String id, bool inFocus) async {
-    await _client.from('projects').update({'in_focus': inFocus}).eq('id', id);
+    try {
+      await _client.from('projects').update({'in_focus': inFocus}).eq('id', id);
+    } catch (e) {
+      // in_focus column migration not applied yet, silently fail
+    }
   }
 
   Future<String> createProject(Map<String, dynamic> data) async {
