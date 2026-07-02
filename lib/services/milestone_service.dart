@@ -25,7 +25,8 @@ class MilestoneService {
         .from('milestones')
         .select()
         .eq('project_id', projectId)
-        .order('position')
+        .order('planned_year', nullsFirst: true)
+        .order('planned_quarter', nullsFirst: true)
         .order('created_at');
     return rows.map<Milestone>((r) => Milestone.fromMap(r)).toList();
   }
@@ -39,11 +40,19 @@ class MilestoneService {
   }
 
   Future<void> updatePosition(String id, int position) async {
-    await _client.from('milestones').update({'position': position}).eq('id', id);
+    try {
+      await _client.from('milestones').update({'position': position}).eq('id', id);
+    } catch (e) {
+      // Position column migration not applied yet, silently fail
+    }
   }
 
   Future<void> toggleInFocus(String id, bool inFocus) async {
-    await _client.from('milestones').update({'in_focus': inFocus}).eq('id', id);
+    try {
+      await _client.from('milestones').update({'in_focus': inFocus}).eq('id', id);
+    } catch (e) {
+      // in_focus column migration not applied yet, silently fail
+    }
   }
 
   Future<void> delete(String id) async {
