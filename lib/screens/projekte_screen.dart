@@ -936,7 +936,7 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.add, size: 20),
-                      onPressed: onAddMilestone,
+                      onPressed: widget.onAddMilestone,
                       tooltip: 'Milestone hinzufügen',
                       visualDensity: VisualDensity.compact,
                     ),
@@ -957,10 +957,10 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                     : MilestoneTreeWidget(
                         milestones: milestones,
                         tasks: tasks,
-                        onMilestoneToggle: onToggleMilestone,
-                        onTaskToggle: onToggleTask,
-                        onTaskTap: onTaskTap,
-                        onMilestoneEdit: onEditMilestone,
+                        onMilestoneToggle: widget.onToggleMilestone,
+                        onTaskToggle: widget.onToggleTask,
+                        onTaskTap: widget.onTaskTap,
+                        onMilestoneEdit: widget.onEditMilestone,
                         onTaskMilestoneChanged:
                             _updateTaskMilestone,
                       ),
@@ -1021,8 +1021,9 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                               dense: true,
                               leading: Checkbox(
                                 value: task.isDone,
-                                onChanged: (v) => onToggleTask(
-                                    task, v ?? false),
+                                onChanged: (v) =>
+                                    widget.onToggleTask(
+                                        task, v ?? false),
                                 visualDensity:
                                     VisualDensity.compact,
                               ),
@@ -1075,7 +1076,7 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                                       ),
                                     )
                                   : null,
-                              onTap: () => onTaskTap(task),
+                              onTap: () => widget.onTaskTap(task),
                             ),
                           );
                         },
