@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/milestone.dart';
 import '../models/task.dart';
+import '../services/milestone_service.dart';
 import '../services/task_service.dart';
 
 /// Detail- und Bearbeitungsseite für einen einzelnen Task.
@@ -15,25 +17,26 @@ class TaskDetailScreen extends StatefulWidget {
 }
 
 class _TaskDetailScreenState extends State<TaskDetailScreen> {
-  final _service = TaskService();
+  final _taskService = TaskService();
+  final _milestoneService = MilestoneService();
 
   late TextEditingController _title;
   late TextEditingController _notes;
   late String _status;
   String? _size;
   String? _context;
+  String? _milestoneId;
   late bool _nextAction;
   DateTime? _plannedDay;
   DateTime? _deadline;
 
   bool _saving = false;
   bool _changed = false;
-  String? _daySection;
+  late Future<List<Milestone>> _milestonesFuture;
 
   static const _statuses = ['open', 'done', 'backlog', 'blocked'];
   static const _sizes = ['S', 'M', 'L'];
   static const _contexts = ['büro', 'stadt', 'samstag', 'sonntag', 'flexibel'];
-  static const _daySections = ['vormittag', 'nachmittag', 'abend'];
 
   @override
   void initState() {
@@ -44,10 +47,13 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     _status = _statuses.contains(t.status) ? t.status : 'open';
     _size = t.size;
     _context = t.context;
+    _milestoneId = t.milestoneId;
     _nextAction = t.nextAction;
     _plannedDay = t.plannedDay;
     _deadline = t.deadlineDate;
-    _daySection = t.daySection;
+    _milestonesFuture = t.projectId != null
+        ? _milestoneService.forProject(t.projectId!)
+        : Future.value([]);
   }
 
   @override
@@ -71,13 +77,13 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         'status': _status,
         'size': _size,
         'context': _context,
+        'milestone_id': _milestoneId,
         'next_action': _nextAction,
         'planned_day': _plannedDay == null ? null : _fmt(_plannedDay!),
         'deadline_date': _deadline == null ? null : _fmt(_deadline!),
         'done_at': _status == 'done' ? DateTime.now().toIso8601String() : null,
-        'day_section': _daySection,
       };
-      await _service.updateFields(widget.task.id, patch);
+      await _taskService.updateFields(widget.task.id, patch);
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
@@ -148,20 +154,26 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             },
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<String?>(
-            value: _daySection,
-            decoration: const InputDecoration(
-                labelText: 'Tagesabschnitt', border: OutlineInputBorder()),
-            items: [
-              const DropdownMenuItem(value: null, child: Text('—')),
-              ..._daySections.map((s) => DropdownMenuItem(
-                    value: s,
-                    child: Text(s[0].toUpperCase() + s.substring(1)),
-                  )),
-            ],
-            onChanged: (v) {
-              setState(() => _daySection = v);
-              _markChanged();
+          FutureBuilder<List<Milestone>>(
+            future: _milestonesFuture,
+            builder: (context, snapshot) {
+              final milestones = snapshot.data ?? [];
+              return DropdownButtonFormField<String?>(
+                value: _milestoneId,
+                decoration: const InputDecoration(
+                    labelText: 'Milestone', border: OutlineInputBorder()),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('— Unzugeordnet')),
+                  ...milestones.map((m) => DropdownMenuItem(
+                        value: m.id,
+                        child: Text(m.title),
+                      )),
+                ],
+                onChanged: (v) {
+                  setState(() => _milestoneId = v);
+                  _markChanged();
+                },
+              );
             },
           ),
           const SizedBox(height: 16),

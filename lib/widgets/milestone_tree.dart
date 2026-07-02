@@ -53,13 +53,13 @@ class _MilestoneTreeWidgetState extends State<MilestoneTreeWidget> {
       itemCount: widget.milestones.length,
       itemBuilder: (context, index) {
         final milestone = widget.milestones[index];
-        final allProjectTasks = widget.tasks
-            .where((t) => t.projectId == milestone.projectId)
+        final allTasksForMilestone = widget.tasks
+            .where((t) => t.milestoneId == milestone.id)
             .toList();
         final tasksForMilestone =
-            allProjectTasks.take(3).toList();
+            allTasksForMilestone.take(3).toList();
         final isExpanded = _expandedMilestones[milestone.id] ?? true;
-        final hasMoreTasks = allProjectTasks.length > 3;
+        final hasMoreTasks = allTasksForMilestone.length > 3;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,7 +184,7 @@ class _MilestoneTreeWidgetState extends State<MilestoneTreeWidget> {
                           vertical: 4,
                         ),
                         child: Text(
-                          '+${allProjectTasks.length - 3} weitere Tasks',
+                          '+${allTasksForMilestone.length - 3} weitere Tasks',
                           style: theme.textTheme.bodySmall
                               ?.copyWith(
                             color:
