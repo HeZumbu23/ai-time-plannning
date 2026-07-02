@@ -71,7 +71,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      final patch = <String, dynamic>{
+      final data = <String, dynamic>{
         'title': _title.text.trim(),
         'notes': _notes.text.trim().isEmpty ? null : _notes.text.trim(),
         'status': _status,
@@ -83,7 +83,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         'deadline_date': _deadline == null ? null : _fmt(_deadline!),
         'done_at': _status == 'done' ? DateTime.now().toIso8601String() : null,
       };
-      await _taskService.updateFields(widget.task.id, patch);
+
+      if (widget.task.id.isEmpty) {
+        data['project_id'] = widget.task.projectId;
+        await _taskService.create(data);
+      } else {
+        await _taskService.updateFields(widget.task.id, data);
+      }
+
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {

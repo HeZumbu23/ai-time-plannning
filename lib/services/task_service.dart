@@ -78,6 +78,11 @@ class TaskService {
     return Task.fromMap(row);
   }
 
+  /// Neuen Task erstellen.
+  Future<void> create(Map<String, dynamic> data) async {
+    await _client.from('tasks').insert(data);
+  }
+
   /// Beliebige Felder aktualisieren (für die Detail-Seite).
   Future<void> updateFields(String id, Map<String, dynamic> patch) async {
     await _client.from('tasks').update(patch).eq('id', id);
