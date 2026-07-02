@@ -944,7 +944,7 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                 ),
               ),
               Expanded(
-                child: milestones.isEmpty
+                child: widget.milestones.isEmpty
                     ? Center(
                         child: Text(
                           'Noch keine Milestones.',
@@ -955,8 +955,8 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                         ),
                       )
                     : MilestoneTreeWidget(
-                        milestones: milestones,
-                        tasks: tasks,
+                        milestones: widget.milestones,
+                        tasks: widget.tasks,
                         onMilestoneToggle: widget.onToggleMilestone,
                         onTaskToggle: widget.onToggleTask,
                         onTaskTap: widget.onTaskTap,
@@ -966,7 +966,7 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                       ),
               ),
               // Unassigned Tasks Section
-              if (tasks
+              if (widget.tasks
                   .where((t) => t.milestoneId == null)
                   .isNotEmpty) ...[
                 const Divider(height: 1),
@@ -987,11 +987,11 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                     builder: (context, candidateData,
                         rejectedData) {
                       return ListView.builder(
-                        itemCount: tasks
+                        itemCount: widget.tasks
                             .where((t) => t.milestoneId == null)
                             .length,
                         itemBuilder: (context, index) {
-                          final unassignedTasks = tasks
+                          final unassignedTasks = widget.tasks
                               .where((t) => t.milestoneId == null)
                               .toList();
                           final task = unassignedTasks[index];
