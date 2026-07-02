@@ -9,6 +9,7 @@ class Milestone {
     this.status = 'open',
     this.plannedYear,
     this.plannedQuarter,
+    this.position = 0,
     this.createdAt,
   });
 
@@ -29,6 +30,9 @@ class Milestone {
 
   /// 1–4
   final int? plannedQuarter;
+
+  /// Position for custom ordering
+  final int position;
   final DateTime? createdAt;
 
   bool get isDone => status == 'done';
@@ -43,6 +47,7 @@ class Milestone {
         status: s,
         plannedYear: plannedYear,
         plannedQuarter: plannedQuarter,
+        position: position,
         createdAt: createdAt,
       );
 
@@ -59,6 +64,7 @@ class Milestone {
       status: (map['status'] ?? 'open') as String,
       plannedYear: map['planned_year'] as int?,
       plannedQuarter: map['planned_quarter'] as int?,
+      position: (map['position'] ?? 0) as int,
       createdAt: map['created_at'] == null
           ? null
           : DateTime.tryParse(map['created_at'].toString()),

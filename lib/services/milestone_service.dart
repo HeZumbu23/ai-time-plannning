@@ -25,8 +25,7 @@ class MilestoneService {
         .from('milestones')
         .select()
         .eq('project_id', projectId)
-        .order('planned_year', nullsFirst: true)
-        .order('planned_quarter', nullsFirst: true)
+        .order('position')
         .order('created_at');
     return rows.map<Milestone>((r) => Milestone.fromMap(r)).toList();
   }
@@ -37,6 +36,10 @@ class MilestoneService {
 
   Future<void> update(String id, Map<String, dynamic> patch) async {
     await _client.from('milestones').update(patch).eq('id', id);
+  }
+
+  Future<void> updatePosition(String id, int position) async {
+    await _client.from('milestones').update({'position': position}).eq('id', id);
   }
 
   Future<void> delete(String id) async {

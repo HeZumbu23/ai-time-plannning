@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/milestone.dart';
 import '../models/task.dart';
+import '../services/milestone_service.dart';
 import '../services/task_service.dart';
 
 class MilestoneTreeWidget extends StatefulWidget {
@@ -48,6 +49,20 @@ class _MilestoneTreeWidgetState extends State<MilestoneTreeWidget> {
     return widget.milestones
         .where((m) => m.parentMilestoneId == null)
         .toList();
+  }
+
+  Future<void> _moveMilestone(Milestone milestone, int direction) async {
+    final service = MilestoneService();
+    try {
+      await service.updatePosition(
+        milestone.id,
+        milestone.position + direction,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Fehler beim Verschieben: $e')),
+      );
+    }
   }
 
   @override
@@ -207,6 +222,24 @@ class _MilestoneTreeWidgetState extends State<MilestoneTreeWidget> {
                             ),
                         ],
                       ),
+                    ),
+                    IconButton(
+                      icon:
+                          const Icon(Icons.expand_less, size: 18),
+                      onPressed: () =>
+                          _moveMilestone(milestone, -1),
+                      visualDensity:
+                          VisualDensity.compact,
+                      tooltip: 'Nach oben',
+                    ),
+                    IconButton(
+                      icon:
+                          const Icon(Icons.expand_more, size: 18),
+                      onPressed: () =>
+                          _moveMilestone(milestone, 1),
+                      visualDensity:
+                          VisualDensity.compact,
+                      tooltip: 'Nach unten',
                     ),
                     IconButton(
                       icon:
