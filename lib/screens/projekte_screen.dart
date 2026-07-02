@@ -6,6 +6,7 @@ import '../models/task.dart';
 import '../services/milestone_service.dart';
 import '../services/project_service.dart';
 import '../services/task_service.dart';
+import '../widgets/milestone_mindmap.dart';
 import '../widgets/milestone_tree.dart';
 import '../widgets/status_views.dart';
 import '../widgets/task_tile.dart';
@@ -760,6 +761,7 @@ class _ProjectDetailSplitView extends StatefulWidget {
 
 class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
   final _taskService = TaskService();
+  bool _useMindmap = false;
 
   Future<void> _updateTaskMilestone(
       Task task, String? newMilestoneId) async {
@@ -968,6 +970,18 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                     ),
                     const Spacer(),
                     IconButton(
+                      icon: Icon(
+                        _useMindmap ? Icons.list : Icons.dashboard,
+                        size: 20,
+                      ),
+                      onPressed: () =>
+                          setState(() => _useMindmap = !_useMindmap),
+                      tooltip: _useMindmap
+                          ? 'Zur Liste wechseln'
+                          : 'Zur Mind-Map wechseln',
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    IconButton(
                       icon: const Icon(Icons.add, size: 20),
                       onPressed: widget.onAddMilestone,
                       tooltip: 'Milestone hinzufügen',
@@ -987,16 +1001,27 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                           ),
                         ),
                       )
-                    : MilestoneTreeWidget(
-                        milestones: widget.milestones,
-                        tasks: widget.tasks,
-                        onMilestoneToggle: widget.onToggleMilestone,
-                        onTaskToggle: widget.onToggleTask,
-                        onTaskTap: widget.onTaskTap,
-                        onMilestoneEdit: widget.onEditMilestone,
-                        onTaskMilestoneChanged:
-                            _updateTaskMilestone,
-                      ),
+                    : _useMindmap
+                        ? MilestoneMindmapWidget(
+                            milestones: widget.milestones,
+                            tasks: widget.tasks,
+                            onMilestoneToggle: widget.onToggleMilestone,
+                            onTaskToggle: widget.onToggleTask,
+                            onTaskTap: widget.onTaskTap,
+                            onMilestoneEdit: widget.onEditMilestone,
+                            onTaskMilestoneChanged:
+                                _updateTaskMilestone,
+                          )
+                        : MilestoneTreeWidget(
+                            milestones: widget.milestones,
+                            tasks: widget.tasks,
+                            onMilestoneToggle: widget.onToggleMilestone,
+                            onTaskToggle: widget.onToggleTask,
+                            onTaskTap: widget.onTaskTap,
+                            onMilestoneEdit: widget.onEditMilestone,
+                            onTaskMilestoneChanged:
+                                _updateTaskMilestone,
+                          ),
               ),
               // Unassigned Tasks Section
               if (widget.tasks
