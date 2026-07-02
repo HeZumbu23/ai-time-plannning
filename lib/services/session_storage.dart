@@ -1,34 +1,22 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase/supabase.dart';
 
-// Speichert die Supabase-Session in SharedPreferences, damit Android-Nutzer
-// nach einem App-Neustart eingeloggt bleiben.
-class SharedPrefsSessionStorage implements LocalStorage {
+// Persistiert die Supabase-Session in SharedPreferences für Android-Neustarts.
+class SessionStorage {
   static const _key = 'supabase_session';
 
-  @override
-  Future<void> initialize() async {}
+  static Future<void> save(Session session) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, jsonEncode(session.toJson()));
+  }
 
-  @override
-  Future<String?> accessToken() async {
+  static Future<String?> load() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_key);
   }
 
-  @override
-  Future<bool> hasAccessToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey(_key);
-  }
-
-  @override
-  Future<void> persistSession(String persistSessionString) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, persistSessionString);
-  }
-
-  @override
-  Future<void> removePersistedSession() async {
+  static Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key);
   }
