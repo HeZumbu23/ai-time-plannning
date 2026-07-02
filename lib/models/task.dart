@@ -13,12 +13,12 @@ class Task {
     this.notes,
     this.projectId,
     this.project,
+    this.milestoneId,
     this.costType,
     this.labels = const [],
     this.dependsOn,
     this.doneAt,
     this.createdAt,
-    this.daySection,
   });
 
   final String id;
@@ -39,14 +39,12 @@ class Task {
   final String? notes;
   final String? projectId;
   final String? project;
+  final String? milestoneId;
   final String? costType;
   final List<String> labels;
   final int? dependsOn;
   final DateTime? doneAt;
   final DateTime? createdAt;
-
-  /// Tagesabschnitt: vormittag | nachmittag | abend
-  final String? daySection;
 
   bool get isDone => status == 'done';
 
@@ -56,10 +54,11 @@ class Task {
         plannedWeek: plannedWeek, plannedDay: plannedDay,
         deadlineDate: deadlineDate, notes: notes,
         projectId: projectId, project: project,
+        milestoneId: milestoneId,
         costType: costType, labels: labels,
         dependsOn: dependsOn,
         doneAt: newStatus == 'done' ? DateTime.now() : null,
-        createdAt: createdAt, daySection: daySection,
+        createdAt: createdAt,
       );
 
   static DateTime? _parseDate(dynamic value) {
@@ -81,13 +80,13 @@ class Task {
       notes: map['notes'] as String?,
       projectId: map['project_id'] as String?,
       project: map['project'] as String?,
+      milestoneId: map['milestone_id'] as String?,
       costType: map['cost_type'] as String?,
       labels: (map['labels'] as List?)?.map((e) => e.toString()).toList() ??
           const [],
       dependsOn: map['depends_on'] as int?,
       doneAt: _parseDate(map['done_at']),
       createdAt: _parseDate(map['created_at']),
-      daySection: map['day_section'] as String?,
     );
   }
 }
