@@ -71,6 +71,33 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
     }
   }
 
+  Future<void> _moveProject(Project project, int direction) async {
+    try {
+      await _service.updatePosition(
+        project.id,
+        project.position + direction,
+      );
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Verschieben: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _changeProjectIcon(Project project) async {
+    final icon = await showModalBottomSheet<String?>(
+      context: context,
+      builder: (ctx) => _IconPickerSheet(currentIcon: project.icon),
+    );
+    if (icon != null) {
+      await _service.updateProject(project.id, {'icon': icon});
+      await _load();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
@@ -96,8 +123,11 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
                 itemBuilder: (_, i) {
                   final p = sorted[i];
                   return ListTile(
-                    leading: Text(p.icon ?? '📁',
-                        style: const TextStyle(fontSize: 22)),
+                    leading: GestureDetector(
+                      onTap: () => _changeProjectIcon(p),
+                      child: Text(p.icon ?? '📁',
+                          style: const TextStyle(fontSize: 22)),
+                    ),
                     title: Text(p.name),
                     subtitle: p.goal != null && p.goal!.isNotEmpty
                         ? Text(p.goal!,
@@ -124,6 +154,18 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
                           const Icon(Icons.check_circle_outline,
                               size: 16, color: Colors.green),
                         ],
+                        IconButton(
+                          icon: const Icon(Icons.expand_less, size: 18),
+                          onPressed: () => _moveProject(p, -1),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Nach oben',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.expand_more, size: 18),
+                          onPressed: () => _moveProject(p, 1),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Nach unten',
+                        ),
                       ],
                     ),
                     onTap: () => _openProject(p),
@@ -1381,3 +1423,77 @@ class _ProjectEditSheetState extends State<_ProjectEditSheet> {
     );
   }
 }
+
+// ── Icon Picker Sheet ─────────────────────────────────────────────────────
+
+class _IconPickerSheet extends StatelessWidget {
+  const _IconPickerSheet({required this.currentIcon});
+  final String? currentIcon;
+
+  static const _icons = [
+    '📁', '📂', '📦', '🎯', '🚀', '💡', '🔧', '⚙️',
+    '📱', '💻', '🌐', '🎨', '✏️', '📝', '📊', '📈',
+    '🎬', '🎭', '🎪', '🎸', '🎤', '🎨', '🖼️', '📸',
+    '🏆', '🎁', '⭐', '✨', '🌟', '💫', '🔥', '❄️',
+    '🌈', '☀️', '🌙', '⚡', '🌊', '🌳', '🍕', '🍔',
+    '🚗', '🚕', '✈️', '🚀', '🚁', '⛵', '🚂', '🚆',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      builder: (context, scrollController) => SingleChildScrollView(
+        controller: scrollController,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Icon wählen',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 16),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 8,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: _icons.length,
+                itemBuilder: (context, index) {
+                  final icon = _icons[index];
+                  return InkWell(
+                    onTap: () => Navigator.of(context).pop(icon),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: currentIcon == icon
+                            ? Border.all(
+                                color: Theme.of(context).colorScheme.primary,
+                                width: 2,
+                              )
+                            : null,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          icon,
+                          style: const TextStyle(fontSize: 28),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

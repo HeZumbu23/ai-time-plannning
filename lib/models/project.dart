@@ -12,6 +12,7 @@ class Project {
     this.plannedYear,
     this.plannedQuarter,
     this.priority,
+    this.position = 0,
   });
 
   final String id;
@@ -34,6 +35,9 @@ class Project {
   /// high | medium | low
   final String? priority;
 
+  /// Position for custom ordering
+  final int position;
+
   factory Project.fromMap(Map<String, dynamic> map) {
     return Project(
       id: map['id'] as String,
@@ -47,6 +51,7 @@ class Project {
       plannedYear: map['planned_year'] as int?,
       plannedQuarter: map['planned_quarter'] as int?,
       priority: map['priority'] as String?,
+      position: (map['position'] ?? 0) as int,
     );
   }
 }
