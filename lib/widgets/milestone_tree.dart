@@ -60,7 +60,10 @@ class _MilestoneTreeWidgetState extends State<MilestoneTreeWidget> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fehler beim Verschieben: $e')),
+        SnackBar(
+          content: Text('Position-Update nicht möglich (Migration ausstehend)'),
+          duration: const Duration(seconds: 2),
+        ),
       );
     }
   }
@@ -71,7 +74,10 @@ class _MilestoneTreeWidgetState extends State<MilestoneTreeWidget> {
       await service.toggleInFocus(milestone.id, !milestone.inFocus);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fehler: $e')),
+        SnackBar(
+          content: Text('Focus-Toggle nicht möglich (Migration ausstehend)'),
+          duration: const Duration(seconds: 2),
+        ),
       );
     }
   }

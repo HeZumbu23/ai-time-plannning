@@ -77,11 +77,24 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
         project.id,
         project.position + direction,
       );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Position-Update nicht möglich (Migration ausstehend)'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
       await _load();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler beim Verschieben: $e')),
+          SnackBar(content: Text('Fehler beim Laden: $e')),
         );
       }
     }
@@ -93,19 +106,40 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
       builder: (ctx) => _IconPickerSheet(currentIcon: project.icon),
     );
     if (icon != null) {
-      await _service.updateProject(project.id, {'icon': icon});
-      await _load();
+      try {
+        await _service.updateProject(project.id, {'icon': icon});
+        await _load();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Fehler beim Icon-Update: $e')),
+          );
+        }
+      }
     }
   }
 
   Future<void> _toggleProjectInFocus(Project project) async {
     try {
       await _service.toggleInFocus(project.id, !project.inFocus);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Focus-Toggle nicht möglich (Migration ausstehend)'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
       await _load();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler: $e')),
+          SnackBar(content: Text('Fehler beim Laden: $e')),
         );
       }
     }
