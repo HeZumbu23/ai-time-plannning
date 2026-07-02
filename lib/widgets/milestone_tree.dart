@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/milestone.dart';
 import '../models/task.dart';
+import '../services/task_service.dart';
 
 class MilestoneTreeWidget extends StatefulWidget {
   const MilestoneTreeWidget({
@@ -12,6 +13,7 @@ class MilestoneTreeWidget extends StatefulWidget {
     required this.onTaskToggle,
     required this.onTaskTap,
     required this.onMilestoneEdit,
+    required this.onTaskMilestoneChanged,
   });
 
   final List<Milestone> milestones;
@@ -20,6 +22,7 @@ class MilestoneTreeWidget extends StatefulWidget {
   final void Function(Task, bool) onTaskToggle;
   final void Function(Task) onTaskTap;
   final void Function(Milestone) onMilestoneEdit;
+  final void Function(Task, String?) onTaskMilestoneChanged;
 
   @override
   State<MilestoneTreeWidget> createState() => _MilestoneTreeWidgetState();
@@ -61,156 +64,217 @@ class _MilestoneTreeWidgetState extends State<MilestoneTreeWidget> {
         final isExpanded = _expandedMilestones[milestone.id] ?? true;
         final hasMoreTasks = allTasksForMilestone.length > 3;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            InkWell(
-              onTap: () => _toggleExpanded(milestone.id),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      isExpanded
-                          ? Icons.expand_more
-                          : Icons.chevron_right,
-                      size: 20,
-                      color: theme.colorScheme.onSurface,
+        return DragTarget<Task>(
+          onAccept: (task) {
+            if (task.milestoneId != milestone.id) {
+              widget.onTaskMilestoneChanged(task, milestone.id);
+            }
+          },
+          builder: (context, candidateData, rejectedData) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InkWell(
+                  onTap: () => _toggleExpanded(milestone.id),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-                    const SizedBox(width: 8),
-                    Checkbox(
-                      value: milestone.isDone,
-                      onChanged: (_) =>
-                          widget.onMilestoneToggle(milestone),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
+                    child: Row(
+                      children: [
+                        Icon(
+                          isExpanded
+                              ? Icons.expand_more
+                              : Icons.chevron_right,
+                          size: 20,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                        const SizedBox(width: 8),
+                        Checkbox(
+                          value: milestone.isDone,
+                          onChanged: (_) =>
+                              widget.onMilestoneToggle(milestone),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  milestone.title,
-                                  style: theme.textTheme.bodyMedium
-                                      ?.copyWith(
-                                    decoration:
-                                        milestone.isDone
-                                            ? TextDecoration
-                                                .lineThrough
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      milestone.title,
+                                      style: theme.textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                        decoration:
+                                            milestone.isDone
+                                                ? TextDecoration
+                                                    .lineThrough
+                                                : null,
+                                        color: milestone.isDone
+                                            ? theme.colorScheme
+                                                .outline
                                             : null,
-                                    color: milestone.isDone
-                                        ? theme.colorScheme.outline
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                              if (tasksForMilestone.isNotEmpty)
-                                Container(
-                                  padding:
-                                      const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme
-                                        .tertiary
-                                        .withOpacity(0.3),
-                                    borderRadius:
-                                        BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    '${tasksForMilestone.length}${hasMoreTasks ? '+' : ''}',
-                                    style: theme.textTheme.labelSmall
-                                        ?.copyWith(
-                                      color: theme.colorScheme
-                                          .onTertiary,
-                                      fontWeight:
-                                          FontWeight.bold,
+                                      ),
                                     ),
                                   ),
+                                  if (tasksForMilestone
+                                      .isNotEmpty)
+                                    Container(
+                                      padding:
+                                          const EdgeInsets
+                                              .symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration:
+                                          BoxDecoration(
+                                        color: theme.colorScheme
+                                            .tertiary
+                                            .withOpacity(0.3),
+                                        borderRadius:
+                                            BorderRadius
+                                                .circular(6),
+                                      ),
+                                      child: Text(
+                                        '${tasksForMilestone.length}${hasMoreTasks ? '+' : ''}',
+                                        style: theme
+                                            .textTheme.labelSmall
+                                            ?.copyWith(
+                                          color: theme
+                                              .colorScheme
+                                              .onTertiary,
+                                          fontWeight:
+                                              FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              if (milestone.plannedYear !=
+                                  null)
+                                Text(
+                                  milestone.plannedQuarter !=
+                                          null
+                                      ? 'Q${milestone.plannedQuarter} ${milestone.plannedYear}'
+                                      : '${milestone.plannedYear}',
+                                  style: theme.textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                          color: theme
+                                              .colorScheme
+                                              .primary),
                                 ),
                             ],
                           ),
-                          if (milestone.plannedYear != null)
-                            Text(
-                              milestone.plannedQuarter != null
-                                  ? 'Q${milestone.plannedQuarter} ${milestone.plannedYear}'
-                                  : '${milestone.plannedYear}',
-                              style: theme.textTheme.labelSmall
-                                  ?.copyWith(
-                                      color:
-                                          theme.colorScheme.primary),
-                            ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit, size: 18),
-                      onPressed: () =>
-                          widget.onMilestoneEdit(milestone),
-                      visualDensity: VisualDensity.compact,
-                      tooltip: 'Bearbeiten',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (isExpanded && tasksForMilestone.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(left: 32),
-                child: Column(
-                  children: [
-                    for (final (i, task) in tasksForMilestone
-                        .indexed)
-                      _TaskTile(
-                        task: task,
-                        onToggle: (v) =>
-                            widget.onTaskToggle(task, v),
-                        onTap: () => widget.onTaskTap(task),
-                        shaded: i.isOdd,
-                      ),
-                    if (hasMoreTasks)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
                         ),
-                        child: Text(
-                          '+${allTasksForMilestone.length - 3} weitere Tasks',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(
-                            color:
-                                theme.colorScheme.outline,
-                            fontStyle: FontStyle.italic,
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.edit,
+                              size: 18),
+                          onPressed: () =>
+                              widget.onMilestoneEdit(
+                                  milestone),
+                          visualDensity:
+                              VisualDensity.compact,
+                          tooltip: 'Bearbeiten',
                         ),
-                      ),
-                  ],
-                ),
-              ),
-            if (isExpanded && tasksForMilestone.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(
-                  left: 48,
-                  top: 4,
-                  bottom: 4,
-                ),
-                child: Text(
-                  'Keine Tasks',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.outline,
+                      ],
+                    ),
                   ),
                 ),
-              ),
-          ],
+                if (isExpanded &&
+                    tasksForMilestone.isNotEmpty)
+                  Padding(
+                    padding:
+                        const EdgeInsets.only(left: 32),
+                    child: Column(
+                      children: [
+                        for (final (i, task) in
+                            tasksForMilestone.indexed)
+                          Draggable<Task>(
+                            data: task,
+                            feedback: Material(
+                              child: Container(
+                                padding:
+                                    const EdgeInsets
+                                        .symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration:
+                                    BoxDecoration(
+                                  color: theme.colorScheme
+                                      .secondaryContainer,
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                          8),
+                                ),
+                                child: Text(
+                                  task.title,
+                                  style: theme.textTheme
+                                      .bodySmall,
+                                ),
+                              ),
+                            ),
+                            child: _TaskTile(
+                              task: task,
+                              onToggle: (v) =>
+                                  widget.onTaskToggle(
+                                      task, v),
+                              onTap: () =>
+                                  widget.onTaskTap(task),
+                              shaded: i.isOdd,
+                            ),
+                          ),
+                        if (hasMoreTasks)
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            child: Text(
+                              '+${allTasksForMilestone.length - 3} weitere Tasks',
+                              style: theme.textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                color:
+                                    theme.colorScheme
+                                        .outline,
+                                fontStyle:
+                                    FontStyle.italic,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                if (isExpanded &&
+                    tasksForMilestone.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 48,
+                      top: 4,
+                      bottom: 4,
+                    ),
+                    child: Text(
+                      'Keine Tasks',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(
+                        color:
+                            theme.colorScheme.outline,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         );
       },
     );

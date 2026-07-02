@@ -700,7 +700,7 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
 
 // ── Project Detail Split View (Desktop/Tablet) ────────────────────────────────
 
-class _ProjectDetailSplitView extends StatelessWidget {
+class _ProjectDetailSplitView extends StatefulWidget {
   const _ProjectDetailSplitView({
     required this.project,
     required this.milestones,
@@ -720,6 +720,34 @@ class _ProjectDetailSplitView extends StatelessWidget {
   final void Function(Milestone) onToggleMilestone;
   final void Function(Task, bool) onToggleTask;
   final void Function(Task) onTaskTap;
+
+  @override
+  State<_ProjectDetailSplitView> createState() =>
+      _ProjectDetailSplitViewState();
+}
+
+class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
+  final _taskService = TaskService();
+
+  Future<void> _updateTaskMilestone(
+      Task task, String? newMilestoneId) async {
+    try {
+      await _taskService
+          .updateFields(task.id, {'milestone_id': newMilestoneId});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(newMilestoneId == null
+              ? 'Task entfernt'
+              : 'Task zugeordnet'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Fehler: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -933,6 +961,8 @@ class _ProjectDetailSplitView extends StatelessWidget {
                         onTaskToggle: onToggleTask,
                         onTaskTap: onTaskTap,
                         onMilestoneEdit: onEditMilestone,
+                        onTaskMilestoneChanged:
+                            _updateTaskMilestone,
                       ),
               ),
               // Unassigned Tasks Section
@@ -948,57 +978,107 @@ class _ProjectDetailSplitView extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  child: ListView.builder(
-                    itemCount:
-                        tasks.where((t) => t.milestoneId == null).length,
-                    itemBuilder: (context, index) {
-                      final unassignedTasks =
-                          tasks.where((t) => t.milestoneId == null).toList();
-                      final task = unassignedTasks[index];
-                      return ListTile(
-                        dense: true,
-                        leading: Checkbox(
-                          value: task.isDone,
-                          onChanged: (v) =>
-                              onToggleTask(task, v ?? false),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        title: Text(
-                          task.title,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            decoration: task.isDone
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: task.isDone
-                                ? theme.colorScheme.outline
-                                : null,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: task.size != null
-                            ? Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
+                  child: DragTarget<Task>(
+                    onAccept: (task) {
+                      if (task.milestoneId != null) {
+                        _updateTaskMilestone(task, null);
+                      }
+                    },
+                    builder: (context, candidateData,
+                        rejectedData) {
+                      return ListView.builder(
+                        itemCount: tasks
+                            .where((t) => t.milestoneId == null)
+                            .length,
+                        itemBuilder: (context, index) {
+                          final unassignedTasks = tasks
+                              .where((t) => t.milestoneId == null)
+                              .toList();
+                          final task = unassignedTasks[index];
+                          return Draggable<Task>(
+                            data: task,
+                            feedback: Material(
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.secondary,
+                                  color: theme.colorScheme
+                                      .tertiaryContainer,
                                   borderRadius:
-                                      BorderRadius.circular(6),
+                                      BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  task.size!,
-                                  style: theme.textTheme.labelSmall
-                                      ?.copyWith(
-                                    color: theme.colorScheme
-                                        .onSecondary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  task.title,
+                                  style:
+                                      theme.textTheme.bodySmall,
                                 ),
-                              )
-                            : null,
-                        onTap: () => onTaskTap(task),
+                              ),
+                            ),
+                            child: ListTile(
+                              dense: true,
+                              leading: Checkbox(
+                                value: task.isDone,
+                                onChanged: (v) => onToggleTask(
+                                    task, v ?? false),
+                                visualDensity:
+                                    VisualDensity.compact,
+                              ),
+                              title: Text(
+                                task.title,
+                                style: theme.textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                  decoration: task.isDone
+                                      ? TextDecoration
+                                          .lineThrough
+                                      : null,
+                                  color: task.isDone
+                                      ? theme.colorScheme
+                                          .outline
+                                      : null,
+                                ),
+                                maxLines: 2,
+                                overflow:
+                                    TextOverflow.ellipsis,
+                              ),
+                              trailing: task.size != null
+                                  ? Container(
+                                      padding:
+                                          const EdgeInsets
+                                              .symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration:
+                                          BoxDecoration(
+                                        color: theme
+                                            .colorScheme
+                                            .secondary,
+                                        borderRadius:
+                                            BorderRadius
+                                                .circular(6),
+                                      ),
+                                      child: Text(
+                                        task.size!,
+                                        style: theme
+                                            .textTheme.labelSmall
+                                            ?.copyWith(
+                                          color: theme
+                                              .colorScheme
+                                              .onSecondary,
+                                          fontWeight:
+                                              FontWeight.bold,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                              onTap: () => onTaskTap(task),
+                            ),
+                          );
+                        },
                       );
                     },
                   ),
