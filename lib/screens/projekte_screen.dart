@@ -465,6 +465,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 onToggleMilestone: _toggleMilestone,
                 onToggleTask: _toggleDone,
                 onTaskTap: _openDetail,
+                onRefresh: _refresh,
               );
             } else {
               return _ProjectDetailMobileView(
@@ -476,6 +477,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 onToggleMilestone: _toggleMilestone,
                 onToggleTask: _toggleDone,
                 onTaskTap: _openDetail,
+                onRefresh: _refresh,
               );
             }
           },
@@ -738,6 +740,7 @@ class _ProjectDetailSplitView extends StatefulWidget {
     required this.onToggleMilestone,
     required this.onToggleTask,
     required this.onTaskTap,
+    required this.onRefresh,
   });
 
   final Project project;
@@ -748,6 +751,7 @@ class _ProjectDetailSplitView extends StatefulWidget {
   final void Function(Milestone) onToggleMilestone;
   final void Function(Task, bool) onToggleTask;
   final void Function(Task) onTaskTap;
+  final VoidCallback onRefresh;
 
   @override
   State<_ProjectDetailSplitView> createState() =>
@@ -770,6 +774,7 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
           duration: const Duration(seconds: 2),
         ),
       );
+      widget.onRefresh();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Fehler: $e')),
@@ -1133,6 +1138,7 @@ class _ProjectDetailMobileView extends StatelessWidget {
     required this.onToggleMilestone,
     required this.onToggleTask,
     required this.onTaskTap,
+    required this.onRefresh,
   });
 
   final Project project;
@@ -1143,6 +1149,7 @@ class _ProjectDetailMobileView extends StatelessWidget {
   final void Function(Milestone) onToggleMilestone;
   final void Function(Task, bool) onToggleTask;
   final void Function(Task) onTaskTap;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
