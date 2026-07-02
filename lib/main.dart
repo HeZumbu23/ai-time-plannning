@@ -3,6 +3,7 @@ import 'package:supabase/supabase.dart';
 
 import 'config/supabase_client.dart';
 import 'router.dart';
+import 'services/auth_notifier.dart';
 import 'services/key_storage.dart';
 import 'services/session_storage.dart';
 
@@ -20,11 +21,28 @@ Future<void> main() async {
   }
 
   if (key.isNotEmpty) {
-    initSupabaseClient(SupabaseClient(
-      _supabaseUrl,
-      key,
-      authOptions: AuthClientOptions(localStorage: SharedPrefsSessionStorage()),
-    ));
+    final client = SupabaseClient(_supabaseUrl, key);
+    initSupabaseClient(client);
+    authNotifier.attach(client);
+
+    // Restore persisted session on Android after app restart.
+    final savedSession = await SessionStorage.load();
+    if (savedSession != null) {
+      try {
+        await client.auth.recoverSession(savedSession);
+      } catch (_) {
+        await SessionStorage.clear();
+      }
+    }
+
+    // Persist session changes to SharedPreferences.
+    client.auth.onAuthStateChange.listen((state) {
+      if (state.session != null) {
+        SessionStorage.save(state.session!);
+      } else {
+        SessionStorage.clear();
+      }
+    });
   }
 
   runApp(const App());
