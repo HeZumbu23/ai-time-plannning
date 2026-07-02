@@ -6,6 +6,7 @@ import '../models/task.dart';
 import '../services/milestone_service.dart';
 import '../services/project_service.dart';
 import '../services/task_service.dart';
+import '../widgets/milestone_tree.dart';
 import '../widgets/status_views.dart';
 import '../widgets/task_tile.dart';
 import 'task_detail_screen.dart';
@@ -422,6 +423,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isWideScreen = MediaQuery.of(context).size.width > 900;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('${_project.icon ?? '📁'}  ${_project.name}'),
@@ -445,33 +448,30 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               return ErrorView(error: snapshot.error!, onRetry: _refresh);
             }
             final (milestones, tasks) = snapshot.data!;
-            return ListView(
-              children: [
-                _MilestonesSection(
-                  milestones: milestones,
-                  onAdd: _addMilestone,
-                  onTap: _editMilestone,
-                  onToggle: _toggleMilestone,
-                ),
-                if (tasks.isNotEmpty) ...[
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text('Tasks',
-                        style: Theme.of(context).textTheme.labelLarge),
-                  ),
-                  for (final (i, task) in tasks.indexed)
-                    TaskTile(
-                      task: task,
-                      shaded: i.isOdd,
-                      onTap: () => _openDetail(task),
-                      onToggleDone: (v) => _toggleDone(task, v),
-                    ),
-                ] else if (milestones.isEmpty)
-                  const EmptyView(
-                      message: 'Noch keine Tasks oder Milestones.'),
-              ],
-            );
+
+            if (isWideScreen) {
+              return _ProjectDetailSplitView(
+                project: _project,
+                milestones: milestones,
+                tasks: tasks,
+                onAddMilestone: _addMilestone,
+                onEditMilestone: _editMilestone,
+                onToggleMilestone: _toggleMilestone,
+                onToggleTask: _toggleDone,
+                onTaskTap: _openDetail,
+              );
+            } else {
+              return _ProjectDetailMobileView(
+                project: _project,
+                milestones: milestones,
+                tasks: tasks,
+                onAddMilestone: _addMilestone,
+                onEditMilestone: _editMilestone,
+                onToggleMilestone: _toggleMilestone,
+                onToggleTask: _toggleDone,
+                onTaskTap: _openDetail,
+              );
+            }
           },
         ),
       ),
@@ -693,6 +693,306 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
         FilledButton(
             onPressed: _title.text.trim().isEmpty ? null : _submit,
             child: Text(isEdit ? 'Speichern' : 'Erstellen')),
+      ],
+    );
+  }
+}
+
+// ── Project Detail Split View (Desktop/Tablet) ────────────────────────────────
+
+class _ProjectDetailSplitView extends StatelessWidget {
+  const _ProjectDetailSplitView({
+    required this.project,
+    required this.milestones,
+    required this.tasks,
+    required this.onAddMilestone,
+    required this.onEditMilestone,
+    required this.onToggleMilestone,
+    required this.onToggleTask,
+    required this.onTaskTap,
+  });
+
+  final Project project;
+  final List<Milestone> milestones;
+  final List<Task> tasks;
+  final VoidCallback onAddMilestone;
+  final void Function(Milestone) onEditMilestone;
+  final void Function(Milestone) onToggleMilestone;
+  final void Function(Task, bool) onToggleTask;
+  final void Function(Task) onTaskTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        // Left Panel: Project Info
+        SizedBox(
+          width: 300,
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(
+                right: BorderSide(
+                  color: theme.colorScheme.outlineVariant,
+                ),
+              ),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Project Icon & Name
+                  Row(
+                    children: [
+                      Text(
+                        project.icon ?? '📁',
+                        style: const TextStyle(fontSize: 32),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          project.name,
+                          style: theme.textTheme.titleMedium,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Goal
+                  if (project.goal != null && project.goal!.isNotEmpty) ...[
+                    Text(
+                      'Ziel',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      project.goal!,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Status
+                  if (project.status != null) ...[
+                    Text(
+                      'Status',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        project.status!,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.onSecondaryContainer,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Size & Priority
+                  if (project.size != null || project.priority != null) ...[
+                    Row(
+                      children: [
+                        if (project.size != null) ...[
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Größe',
+                                  style: theme.textTheme.labelSmall
+                                      ?.copyWith(
+                                    color:
+                                        theme.colorScheme.outline,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  project.size!,
+                                  style:
+                                      theme.textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (project.priority != null) ...[
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Priorität',
+                                  style: theme.textTheme.labelSmall
+                                      ?.copyWith(
+                                    color:
+                                        theme.colorScheme.outline,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  switch (project.priority!) {
+                                    'high' => '🔴 Hoch',
+                                    'medium' => '🟡 Mittel',
+                                    'low' => '🟢 Niedrig',
+                                    _ => project.priority!,
+                                  },
+                                  style:
+                                      theme.textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Planned
+                  if (project.plannedYear != null) ...[
+                    Text(
+                      'Geplant',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      project.plannedQuarter != null
+                          ? 'Q${project.plannedQuarter} ${project.plannedYear}'
+                          : '${project.plannedYear}',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Right Panel: Milestone Tree
+        Expanded(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(
+                  children: [
+                    Text(
+                      'Milestones',
+                      style: theme.textTheme.labelLarge,
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.add, size: 20),
+                      onPressed: onAddMilestone,
+                      tooltip: 'Milestone hinzufügen',
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: milestones.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Noch keine Milestones.',
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                      )
+                    : MilestoneTreeWidget(
+                        milestones: milestones,
+                        tasks: tasks,
+                        onMilestoneToggle: onToggleMilestone,
+                        onTaskToggle: onToggleTask,
+                        onTaskTap: onTaskTap,
+                        onMilestoneEdit: onEditMilestone,
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Project Detail Mobile View ─────────────────────────────────────────────────
+
+class _ProjectDetailMobileView extends StatelessWidget {
+  const _ProjectDetailMobileView({
+    required this.project,
+    required this.milestones,
+    required this.tasks,
+    required this.onAddMilestone,
+    required this.onEditMilestone,
+    required this.onToggleMilestone,
+    required this.onToggleTask,
+    required this.onTaskTap,
+  });
+
+  final Project project;
+  final List<Milestone> milestones;
+  final List<Task> tasks;
+  final VoidCallback onAddMilestone;
+  final void Function(Milestone) onEditMilestone;
+  final void Function(Milestone) onToggleMilestone;
+  final void Function(Task, bool) onToggleTask;
+  final void Function(Task) onTaskTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        _MilestonesSection(
+          milestones: milestones,
+          onAdd: onAddMilestone,
+          onTap: onEditMilestone,
+          onToggle: onToggleMilestone,
+        ),
+        if (tasks.isNotEmpty) ...[
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text('Tasks',
+                style: Theme.of(context).textTheme.labelLarge),
+          ),
+          for (final (i, task) in tasks.indexed)
+            TaskTile(
+              task: task,
+              shaded: i.isOdd,
+              onTap: () => onTaskTap(task),
+              onToggleDone: (v) => onToggleTask(task, v),
+            ),
+        ] else if (milestones.isEmpty)
+          const EmptyView(
+              message: 'Noch keine Tasks oder Milestones.'),
       ],
     );
   }
