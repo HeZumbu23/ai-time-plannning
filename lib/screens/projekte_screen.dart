@@ -893,7 +893,7 @@ class _ProjectDetailSplitView extends StatelessWidget {
           ),
         ),
 
-        // Right Panel: Milestone Tree
+        // Right Panel: Milestone Tree + Unassigned Tasks
         Expanded(
           child: Column(
             children: [
@@ -935,6 +935,75 @@ class _ProjectDetailSplitView extends StatelessWidget {
                         onMilestoneEdit: onEditMilestone,
                       ),
               ),
+              // Unassigned Tasks Section
+              if (tasks
+                  .where((t) => t.milestoneId == null)
+                  .isNotEmpty) ...[
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Text(
+                    'Unzugeordnete Tasks',
+                    style: theme.textTheme.labelLarge,
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount:
+                        tasks.where((t) => t.milestoneId == null).length,
+                    itemBuilder: (context, index) {
+                      final unassignedTasks =
+                          tasks.where((t) => t.milestoneId == null).toList();
+                      final task = unassignedTasks[index];
+                      return ListTile(
+                        dense: true,
+                        leading: Checkbox(
+                          value: task.isDone,
+                          onChanged: (v) =>
+                              onToggleTask(task, v ?? false),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        title: Text(
+                          task.title,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            decoration: task.isDone
+                                ? TextDecoration.lineThrough
+                                : null,
+                            color: task.isDone
+                                ? theme.colorScheme.outline
+                                : null,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: task.size != null
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.secondary,
+                                  borderRadius:
+                                      BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  task.size!,
+                                  style: theme.textTheme.labelSmall
+                                      ?.copyWith(
+                                    color: theme.colorScheme
+                                        .onSecondary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              )
+                            : null,
+                        onTap: () => onTaskTap(task),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ],
           ),
         ),
