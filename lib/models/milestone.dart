@@ -10,6 +10,7 @@ class Milestone {
     this.plannedYear,
     this.plannedQuarter,
     this.position = 0,
+    this.inFocus = false,
     this.createdAt,
   });
 
@@ -33,6 +34,9 @@ class Milestone {
 
   /// Position for custom ordering
   final int position;
+
+  /// In focus/starred status
+  final bool inFocus;
   final DateTime? createdAt;
 
   bool get isDone => status == 'done';
@@ -48,6 +52,7 @@ class Milestone {
         plannedYear: plannedYear,
         plannedQuarter: plannedQuarter,
         position: position,
+        inFocus: inFocus,
         createdAt: createdAt,
       );
 
@@ -65,6 +70,7 @@ class Milestone {
       plannedYear: map['planned_year'] as int?,
       plannedQuarter: map['planned_quarter'] as int?,
       position: (map['position'] ?? 0) as int,
+      inFocus: (map['in_focus'] ?? false) as bool,
       createdAt: map['created_at'] == null
           ? null
           : DateTime.tryParse(map['created_at'].toString()),

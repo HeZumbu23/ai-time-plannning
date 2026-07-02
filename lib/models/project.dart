@@ -13,6 +13,7 @@ class Project {
     this.plannedQuarter,
     this.priority,
     this.position = 0,
+    this.inFocus = false,
   });
 
   final String id;
@@ -38,6 +39,9 @@ class Project {
   /// Position for custom ordering
   final int position;
 
+  /// In focus/starred status
+  final bool inFocus;
+
   factory Project.fromMap(Map<String, dynamic> map) {
     return Project(
       id: map['id'] as String,
@@ -52,6 +56,7 @@ class Project {
       plannedQuarter: map['planned_quarter'] as int?,
       priority: map['priority'] as String?,
       position: (map['position'] ?? 0) as int,
+      inFocus: (map['in_focus'] ?? false) as bool,
     );
   }
 }

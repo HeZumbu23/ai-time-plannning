@@ -98,6 +98,19 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
     }
   }
 
+  Future<void> _toggleProjectInFocus(Project project) async {
+    try {
+      await _service.toggleInFocus(project.id, !project.inFocus);
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
@@ -154,6 +167,15 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
                           const Icon(Icons.check_circle_outline,
                               size: 16, color: Colors.green),
                         ],
+                        IconButton(
+                          icon: Icon(
+                            p.inFocus ? Icons.star : Icons.star_outline,
+                            size: 18,
+                          ),
+                          onPressed: () => _toggleProjectInFocus(p),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: p.inFocus ? 'Aus Focus entfernen' : 'In Focus',
+                        ),
                         IconButton(
                           icon: const Icon(Icons.expand_less, size: 18),
                           onPressed: () => _moveProject(p, -1),

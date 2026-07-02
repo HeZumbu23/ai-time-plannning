@@ -65,6 +65,17 @@ class _MilestoneTreeWidgetState extends State<MilestoneTreeWidget> {
     }
   }
 
+  Future<void> _toggleMilestoneInFocus(Milestone milestone) async {
+    final service = MilestoneService();
+    try {
+      await service.toggleInFocus(milestone.id, !milestone.inFocus);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Fehler: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -222,6 +233,21 @@ class _MilestoneTreeWidgetState extends State<MilestoneTreeWidget> {
                             ),
                         ],
                       ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        milestone.inFocus
+                            ? Icons.star
+                            : Icons.star_outline,
+                        size: 18,
+                      ),
+                      onPressed: () =>
+                          _toggleMilestoneInFocus(milestone),
+                      visualDensity:
+                          VisualDensity.compact,
+                      tooltip: milestone.inFocus
+                          ? 'Aus Focus entfernen'
+                          : 'In Focus',
                     ),
                     IconButton(
                       icon:

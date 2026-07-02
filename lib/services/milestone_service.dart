@@ -42,6 +42,10 @@ class MilestoneService {
     await _client.from('milestones').update({'position': position}).eq('id', id);
   }
 
+  Future<void> toggleInFocus(String id, bool inFocus) async {
+    await _client.from('milestones').update({'in_focus': inFocus}).eq('id', id);
+  }
+
   Future<void> delete(String id) async {
     await _client.from('milestones').delete().eq('id', id);
   }
