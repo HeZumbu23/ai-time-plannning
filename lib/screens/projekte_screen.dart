@@ -71,6 +71,22 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
     }
   }
 
+  Future<void> _moveProject(Project project, int direction) async {
+    try {
+      await _service.updatePosition(
+        project.id,
+        project.position + direction,
+      );
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Verschieben: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
@@ -124,6 +140,18 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
                           const Icon(Icons.check_circle_outline,
                               size: 16, color: Colors.green),
                         ],
+                        IconButton(
+                          icon: const Icon(Icons.expand_less, size: 18),
+                          onPressed: () => _moveProject(p, -1),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Nach oben',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.expand_more, size: 18),
+                          onPressed: () => _moveProject(p, 1),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Nach unten',
+                        ),
                       ],
                     ),
                     onTap: () => _openProject(p),
