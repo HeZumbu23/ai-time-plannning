@@ -103,4 +103,9 @@ class TaskService {
   Future<void> setNextAction(String id, bool value) async {
     await _client.from('tasks').update({'next_action': value}).eq('id', id);
   }
+
+  /// Task löschen.
+  Future<void> delete(String id) async {
+    await _client.from('tasks').delete().eq('id', id);
+  }
 }

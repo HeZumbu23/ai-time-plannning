@@ -101,6 +101,43 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     }
   }
 
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Task löschen?'),
+        content: const Text('Dieser Task wird dauerhaft gelöscht.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _saving = true);
+      try {
+        await _taskService.delete(widget.task.id);
+        if (mounted) Navigator.of(context).pop(true);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Fehler beim Löschen: $e')));
+          setState(() => _saving = false);
+        }
+      }
+    }
+  }
+
   Future<void> _pickDate({
     required DateTime? current,
     required ValueChanged<DateTime?> onPicked,
@@ -120,10 +157,18 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isNewTask = widget.task.id.isEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Task bearbeiten'),
         actions: [
+          if (!isNewTask)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: _saving ? null : _delete,
+              tooltip: 'Löschen',
+            ),
           if (_saving)
             const Padding(
               padding: EdgeInsets.all(14),
