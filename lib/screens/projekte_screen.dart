@@ -775,13 +775,13 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                   Row(
                     children: [
                       Text(
-                        project.icon ?? '📁',
+                        widget.project.icon ?? '📁',
                         style: const TextStyle(fontSize: 32),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          project.name,
+                          widget.project.name,
                           style: theme.textTheme.titleMedium,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -792,7 +792,7 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                   const SizedBox(height: 20),
 
                   // Goal
-                  if (project.goal != null && project.goal!.isNotEmpty) ...[
+                  if (widget.project.goal != null && widget.project.goal!.isNotEmpty) ...[
                     Text(
                       'Ziel',
                       style: theme.textTheme.labelMedium?.copyWith(
@@ -802,14 +802,14 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      project.goal!,
+                      widget.project.goal!,
                       style: theme.textTheme.bodySmall,
                     ),
                     const SizedBox(height: 16),
                   ],
 
                   // Status
-                  if (project.status != null) ...[
+                  if (widget.project.status != null) ...[
                     Text(
                       'Status',
                       style: theme.textTheme.labelMedium?.copyWith(
@@ -828,7 +828,7 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        project.status!,
+                        widget.project.status!,
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: theme.colorScheme.onSecondaryContainer,
                         ),
@@ -838,10 +838,10 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                   ],
 
                   // Size & Priority
-                  if (project.size != null || project.priority != null) ...[
+                  if (widget.project.size != null || widget.project.priority != null) ...[
                     Row(
                       children: [
-                        if (project.size != null) ...[
+                        if (widget.project.size != null) ...[
                           Expanded(
                             child: Column(
                               crossAxisAlignment:
@@ -857,7 +857,7 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  project.size!,
+                                  widget.project.size!,
                                   style:
                                       theme.textTheme.bodyMedium,
                                 ),
@@ -865,7 +865,7 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                             ),
                           ),
                         ],
-                        if (project.priority != null) ...[
+                        if (widget.project.priority != null) ...[
                           Expanded(
                             child: Column(
                               crossAxisAlignment:
@@ -881,11 +881,11 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  switch (project.priority!) {
+                                  switch (widget.project.priority!) {
                                     'high' => '🔴 Hoch',
                                     'medium' => '🟡 Mittel',
                                     'low' => '🟢 Niedrig',
-                                    _ => project.priority!,
+                                    _ => widget.project.priority!,
                                   },
                                   style:
                                       theme.textTheme.bodyMedium,
@@ -900,7 +900,7 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                   ],
 
                   // Planned
-                  if (project.plannedYear != null) ...[
+                  if (widget.project.plannedYear != null) ...[
                     Text(
                       'Geplant',
                       style: theme.textTheme.labelSmall?.copyWith(
@@ -909,9 +909,9 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      project.plannedQuarter != null
-                          ? 'Q${project.plannedQuarter} ${project.plannedYear}'
-                          : '${project.plannedYear}',
+                      widget.project.plannedQuarter != null
+                          ? 'Q${widget.project.plannedQuarter} ${widget.project.plannedYear}'
+                          : '${widget.project.plannedYear}',
                       style: theme.textTheme.bodyMedium,
                     ),
                   ],
