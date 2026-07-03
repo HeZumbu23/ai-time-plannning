@@ -30,19 +30,11 @@ class ProjectService {
   }
 
   Future<void> updatePosition(String id, int position) async {
-    try {
-      await _client.from('projects').update({'position': position}).eq('id', id);
-    } catch (e) {
-      // Position column migration not applied yet, silently fail
-    }
+    await _client.from('projects').update({'position': position}).eq('id', id);
   }
 
   Future<void> toggleInFocus(String id, bool inFocus) async {
-    try {
-      await _client.from('projects').update({'in_focus': inFocus}).eq('id', id);
-    } catch (e) {
-      // in_focus column migration not applied yet, silently fail
-    }
+    await _client.from('projects').update({'in_focus': inFocus}).eq('id', id);
   }
 
   Future<String> createProject(Map<String, dynamic> data) async {
