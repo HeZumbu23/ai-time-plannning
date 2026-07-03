@@ -309,6 +309,7 @@ class _TaskTile extends StatelessWidget {
     return Container(
       color: shaded ? theme.colorScheme.surfaceContainer : null,
       child: ListTile(
+        splashColor: theme.colorScheme.primary.withOpacity(0.1),
         leading: Checkbox(
           value: task.isDone,
           onChanged: (v) => onToggle(v ?? false),
