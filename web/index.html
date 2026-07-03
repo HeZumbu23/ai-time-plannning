@@ -18,7 +18,7 @@
   <!-- BarcodeDetector polyfill for QR scanning in browsers that lack native support -->
   <script type="module">
     if (!('BarcodeDetector' in window)) {
-      import('https://fastly.jsdelivr.net/npm/barcode-detector@2/dist/es/barcode-detector.js')
+      import('https://cdn.jsdelivr.net/npm/barcode-detector@2.2.9/dist/es/barcode-detector.js')
         .then(m => { window['BarcodeDetector'] = m.BarcodeDetector; })
         .catch(() => {});
     }
