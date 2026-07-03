@@ -77,16 +77,20 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
     if (oldIndex < newIndex) {
       newIndex -= 1;
     }
+
+    const statusOrder = {'active': 0, 'backlog': 1, 'done': 2};
     final sorted = [..._projects]..sort((a, b) {
-      final statusOrder = {'active': 0, 'backlog': 1, 'done': 2};
       final sa = statusOrder[a.status] ?? 1;
       final sb = statusOrder[b.status] ?? 1;
       if (sa != sb) return sa.compareTo(sb);
+      if (a.position != b.position) return a.position.compareTo(b.position);
       return a.name.compareTo(b.name);
     });
 
+    sorted.insert(newIndex, sorted.removeAt(oldIndex));
+
     setState(() {
-      sorted.insert(newIndex, sorted.removeAt(oldIndex));
+      _projects = sorted;
     });
 
     try {
@@ -161,6 +165,7 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
         final sa = statusOrder[a.status] ?? 1;
         final sb = statusOrder[b.status] ?? 1;
         if (sa != sb) return sa.compareTo(sb);
+        if (a.position != b.position) return a.position.compareTo(b.position);
         return a.name.compareTo(b.name);
       });
 
