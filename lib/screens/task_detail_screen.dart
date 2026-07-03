@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../models/milestone.dart';
+import '../models/project.dart';
 import '../models/task.dart';
 import '../services/milestone_service.dart';
+import '../services/project_service.dart';
 import '../services/task_service.dart';
 
 /// Detail- und Bearbeitungsseite für einen einzelnen Task.
@@ -19,6 +21,7 @@ class TaskDetailScreen extends StatefulWidget {
 class _TaskDetailScreenState extends State<TaskDetailScreen> {
   final _taskService = TaskService();
   final _milestoneService = MilestoneService();
+  final _projectService = ProjectService();
 
   late TextEditingController _title;
   late TextEditingController _notes;
@@ -29,9 +32,11 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   late bool _nextAction;
   DateTime? _plannedDay;
   DateTime? _deadline;
+  late String? _projectId;
 
   bool _saving = false;
   bool _changed = false;
+  late Future<List<Project>> _projectsFuture;
   late Future<List<Milestone>> _milestonesFuture;
 
   static const _statuses = ['open', 'done', 'backlog', 'blocked'];
@@ -51,9 +56,20 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     _nextAction = t.nextAction;
     _plannedDay = t.plannedDay;
     _deadline = t.deadlineDate;
+    _projectId = t.projectId;
+    _projectsFuture = _projectService.all();
     _milestonesFuture = t.projectId != null
         ? _milestoneService.forProject(t.projectId!)
         : Future.value([]);
+  }
+
+  Future<void> _loadMilestonesForProject(String projectId) async {
+    setState(() {
+      _projectId = projectId;
+      _milestoneId = null;
+      _milestonesFuture = _milestoneService.forProject(projectId);
+      _markChanged();
+    });
   }
 
   @override
@@ -85,9 +101,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       };
 
       if (widget.task.id.isEmpty) {
-        data['project_id'] = widget.task.projectId;
+        data['project_id'] = _projectId;
         await _taskService.create(data);
       } else {
+        data['project_id'] = _projectId;
         await _taskService.updateFields(widget.task.id, data);
       }
 
@@ -191,6 +208,37 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 labelText: 'Titel', border: OutlineInputBorder()),
             maxLines: null,
             onChanged: (_) => _markChanged(),
+          ),
+          const SizedBox(height: 16),
+          FutureBuilder<List<Project>>(
+            future: _projectsFuture,
+            builder: (context, snapshot) {
+              final projects = snapshot.data ?? [];
+              return DropdownButtonFormField<String?>(
+                value: _projectId,
+                decoration: const InputDecoration(
+                    labelText: 'Projekt', border: OutlineInputBorder()),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('— Kein Projekt')),
+                  ...projects.map((p) => DropdownMenuItem(
+                        value: p.id,
+                        child: Text(p.name),
+                      )),
+                ],
+                onChanged: (v) {
+                  if (v != null) {
+                    _loadMilestonesForProject(v);
+                  } else {
+                    setState(() {
+                      _projectId = null;
+                      _milestoneId = null;
+                      _milestonesFuture = Future.value([]);
+                      _markChanged();
+                    });
+                  }
+                },
+              );
+            },
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
