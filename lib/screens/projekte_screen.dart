@@ -97,11 +97,12 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
       for (int i = 0; i < sorted.length; i++) {
         await _service.updatePosition(sorted[i].id, i);
       }
+      await _load();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Position-Update nicht möglich (Migration ausstehend)'),
+            content: Text('Position-Update fehlgeschlagen: $e'),
             duration: const Duration(seconds: 2),
           ),
         );
