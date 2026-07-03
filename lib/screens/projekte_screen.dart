@@ -12,6 +12,8 @@ import '../widgets/status_views.dart';
 import '../widgets/task_tile.dart';
 import 'task_detail_screen.dart';
 
+typedef ReorderCallback = void Function(int oldIndex, int newIndex);
+
 class ProjekteScreen extends StatefulWidget {
   const ProjekteScreen({super.key});
 
@@ -71,12 +73,26 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
     }
   }
 
-  Future<void> _moveProject(Project project, int direction) async {
+  Future<void> _reorderProjects(int oldIndex, int newIndex) async {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final sorted = [..._projects]..sort((a, b) {
+      final statusOrder = {'active': 0, 'backlog': 1, 'done': 2};
+      final sa = statusOrder[a.status] ?? 1;
+      final sb = statusOrder[b.status] ?? 1;
+      if (sa != sb) return sa.compareTo(sb);
+      return a.name.compareTo(b.name);
+    });
+
+    setState(() {
+      sorted.insert(newIndex, sorted.removeAt(oldIndex));
+    });
+
     try {
-      await _service.updatePosition(
-        project.id,
-        project.position + direction,
-      );
+      for (int i = 0; i < sorted.length; i++) {
+        await _service.updatePosition(sorted[i].id, i);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -86,17 +102,7 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
           ),
         );
       }
-      return;
-    }
-
-    try {
       await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler beim Laden: $e')),
-        );
-      }
     }
   }
 
@@ -163,70 +169,75 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
         onRefresh: _load,
         child: sorted.isEmpty
             ? const EmptyView(message: 'Noch keine Projekte.')
-            : ListView.separated(
+            : ReorderableListView(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: sorted.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (_, i) {
-                  final p = sorted[i];
-                  return ListTile(
-                    leading: GestureDetector(
-                      onTap: () => _changeProjectIcon(p),
-                      child: Text(p.icon ?? '📁',
-                          style: const TextStyle(fontSize: 22)),
-                    ),
-                    title: Text(p.name),
-                    subtitle: p.goal != null && p.goal!.isNotEmpty
-                        ? Text(p.goal!,
-                            maxLines: 1, overflow: TextOverflow.ellipsis)
-                        : null,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (p.size != null) _SizeChip(p.size!),
-                        if (p.priority != null) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            switch (p.priority!) {
-                              'high' => '🔴',
-                              'medium' => '🟡',
-                              'low' => '🟢',
-                              _ => '',
-                            },
-                            style: const TextStyle(fontSize: 14),
+                onReorder: _reorderProjects,
+                children: [
+                  for (int i = 0; i < sorted.length; i++)
+                    Container(
+                      key: ValueKey(sorted[i].id),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                            width: 0.5,
                           ),
-                        ],
-                        if (p.status == 'done') ...[
-                          const SizedBox(width: 4),
-                          const Icon(Icons.check_circle_outline,
-                              size: 16, color: Colors.green),
-                        ],
-                        IconButton(
-                          icon: Icon(
-                            p.inFocus ? Icons.star : Icons.star_outline,
-                            size: 18,
-                          ),
-                          onPressed: () => _toggleProjectInFocus(p),
-                          visualDensity: VisualDensity.compact,
-                          tooltip: p.inFocus ? 'Aus Focus entfernen' : 'In Focus',
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.expand_less, size: 18),
-                          onPressed: () => _moveProject(p, -1),
-                          visualDensity: VisualDensity.compact,
-                          tooltip: 'Nach oben',
+                      ),
+                      child: ListTile(
+                        leading: GestureDetector(
+                          onTap: () => _changeProjectIcon(sorted[i]),
+                          child: Text(sorted[i].icon ?? '📁',
+                              style: const TextStyle(fontSize: 22)),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.expand_more, size: 18),
-                          onPressed: () => _moveProject(p, 1),
-                          visualDensity: VisualDensity.compact,
-                          tooltip: 'Nach unten',
+                        title: Text(sorted[i].name),
+                        subtitle: sorted[i].goal != null && sorted[i].goal!.isNotEmpty
+                            ? Text(sorted[i].goal!,
+                                maxLines: 1, overflow: TextOverflow.ellipsis)
+                            : null,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (sorted[i].size != null) _SizeChip(sorted[i].size!),
+                            if (sorted[i].priority != null) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                switch (sorted[i].priority!) {
+                                  'high' => '🔴',
+                                  'medium' => '🟡',
+                                  'low' => '🟢',
+                                  _ => '',
+                                },
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                            if (sorted[i].status == 'done') ...[
+                              const SizedBox(width: 4),
+                              const Icon(Icons.check_circle_outline,
+                                  size: 16, color: Colors.green),
+                            ],
+                            IconButton(
+                              icon: Icon(
+                                sorted[i].inFocus ? Icons.star : Icons.star_outline,
+                                size: 18,
+                              ),
+                              onPressed: () => _toggleProjectInFocus(sorted[i]),
+                              visualDensity: VisualDensity.compact,
+                              tooltip: sorted[i].inFocus ? 'Aus Focus entfernen' : 'In Focus',
+                            ),
+                            ReorderableDragStartListener(
+                              index: i,
+                              child: const MouseRegion(
+                                cursor: SystemMouseCursors.grab,
+                                child: Icon(Icons.drag_handle, size: 18),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                        onTap: () => _openProject(sorted[i]),
+                      ),
                     ),
-                    onTap: () => _openProject(p),
-                  );
-                },
+                ],
               ),
       ),
       floatingActionButton: FloatingActionButton(
