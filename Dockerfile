@@ -16,15 +16,17 @@ RUN flutter create --platforms=web . \
 # ---- Runtime-Stage: Nginx ----
 FROM nginx:alpine
 
-RUN apk add --no-cache socat python3 py3-pip \
+RUN apk add --no-cache socat python3 py3-pip postgresql-client \
     && pip3 install --no-cache-dir --break-system-packages qrcode
 
 COPY --from=build /app/build/web /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 COPY qr-trigger.sh /usr/local/bin/qr-trigger.sh
+COPY scripts /app/scripts
+COPY supabase/migrations /app/supabase/migrations
 
-RUN chmod +x /docker-entrypoint.sh /usr/local/bin/qr-trigger.sh
+RUN chmod +x /docker-entrypoint.sh /usr/local/bin/qr-trigger.sh /app/scripts/run-migrations.sh
 
 EXPOSE 80
 
