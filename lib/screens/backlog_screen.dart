@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../models/milestone.dart';
 import '../models/project.dart';
 import '../models/task.dart';
+import '../services/milestone_service.dart';
 import '../services/project_service.dart';
 import '../services/task_service.dart';
 import '../widgets/status_views.dart';
@@ -18,6 +20,7 @@ class BacklogScreen extends StatefulWidget {
 class _BacklogScreenState extends State<BacklogScreen> {
   final _service = TaskService();
   final _projects = ProjectService();
+  final _milestones = MilestoneService();
   late Future<_BacklogData> _future;
 
   Set<String> _selectedStatuses = {'open'};
@@ -35,10 +38,15 @@ class _BacklogScreenState extends State<BacklogScreen> {
   }
 
   Future<_BacklogData> _load() async {
-    final results = await Future.wait([_service.backlog(), _projects.all()]);
+    final results = await Future.wait([
+      _service.backlog(),
+      _projects.all(),
+      _milestones.all(),
+    ]);
     return _BacklogData(
       tasks: results[0] as List<Task>,
       projects: {for (final p in results[1] as List<Project>) p.id: p},
+      milestones: results[2] as List<Milestone>,
     );
   }
 
@@ -64,7 +72,17 @@ class _BacklogScreenState extends State<BacklogScreen> {
       if (!_selectedStatuses.contains(t.status)) return false;
       if (_selectedSizes.isNotEmpty && !_selectedSizes.contains(t.size)) return false;
       if (_selectedContexts.isNotEmpty && !_selectedContexts.contains(t.context)) return false;
-      if (_selectedProjects.isNotEmpty && !_selectedProjects.contains(t.projectId)) return false;
+
+      // Check project filter: include if task is in selected project OR task's milestone is in selected project
+      if (_selectedProjects.isNotEmpty) {
+        bool inSelectedProject = _selectedProjects.contains(t.projectId);
+        if (!inSelectedProject && t.milestoneId != null) {
+          final milestone = data.milestones.firstWhereOrNull((m) => m.id == t.milestoneId);
+          inSelectedProject = milestone != null && _selectedProjects.contains(milestone.projectId);
+        }
+        if (!inSelectedProject) return false;
+      }
+
       if (_nextActionOnly && !t.nextAction) return false;
       if (_unplannedOnly && t.plannedDay != null) return false;
       return true;
@@ -281,9 +299,14 @@ class _BacklogScreenState extends State<BacklogScreen> {
 }
 
 class _BacklogData {
-  _BacklogData({required this.tasks, required this.projects});
+  _BacklogData({
+    required this.tasks,
+    required this.projects,
+    required this.milestones,
+  });
   final List<Task> tasks;
   final Map<String, Project> projects;
+  final List<Milestone> milestones;
 }
 
 class _TaskTile extends StatelessWidget {
