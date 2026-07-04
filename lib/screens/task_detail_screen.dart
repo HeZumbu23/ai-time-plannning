@@ -209,6 +209,46 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     }
   }
 
+  Future<void> _convertToMilestone() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('In Milestone konvertieren?'),
+        content: const Text('Dieser Task wird in einen Milestone umgewandelt und dann gelöscht.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Konvertieren'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _saving = true);
+      try {
+        await _milestoneService.create({
+          'title': _title.text.trim(),
+          'description': _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+          'project_id': _projectId,
+        });
+        await _taskService.delete(widget.task.id);
+        if (mounted) Navigator.of(context).pop(true);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Fehler bei der Konvertierung: $e')),
+          );
+          setState(() => _saving = false);
+        }
+      }
+    }
+  }
+
   Future<void> _pickDate({
     required DateTime? current,
     required ValueChanged<DateTime?> onPicked,
@@ -234,12 +274,18 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       appBar: AppBar(
         title: const Text('Task bearbeiten'),
         actions: [
-          if (!isNewTask)
+          if (!isNewTask) ...[
+            IconButton(
+              icon: const Icon(Icons.flag_outlined),
+              onPressed: _saving ? null : _convertToMilestone,
+              tooltip: 'In Milestone konvertieren',
+            ),
             IconButton(
               icon: const Icon(Icons.delete),
               onPressed: _saving ? null : _delete,
               tooltip: 'Löschen',
             ),
+          ],
           if (_saving)
             const Padding(
               padding: EdgeInsets.all(14),
