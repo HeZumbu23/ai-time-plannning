@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/decision.dart';
+import '../services/decisions_service.dart';
+
 /// Decision-making tool with multiple methods for clarifying decisions.
 class DecisionsScreen extends StatefulWidget {
   const DecisionsScreen({super.key});
@@ -9,8 +12,67 @@ class DecisionsScreen extends StatefulWidget {
 }
 
 class _DecisionsScreenState extends State<DecisionsScreen> {
+  final _service = DecisionsService();
   String? _selectedMethod;
-  final List<_Decision> _decisions = [];
+  late Future<List<Decision>> _decisionsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _decisionsFuture = _service.all();
+  }
+
+  Future<void> _refresh() async {
+    setState(() => _decisionsFuture = _service.all());
+  }
+
+  Future<void> _saveDecision({
+    required String method,
+    required String topic,
+    required String result,
+    required Map<String, dynamic> details,
+  }) async {
+    try {
+      await _service.create(
+        method: method,
+        topic: topic,
+        result: result,
+        details: details,
+      );
+
+      if (mounted) {
+        _refresh();
+        setState(() => _selectedMethod = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Entscheidung gespeichert! ✓')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Speichern: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteDecision(String decisionId) async {
+    try {
+      await _service.delete(decisionId);
+      if (mounted) {
+        _refresh();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Entscheidung gelöscht')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Löschen: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,22 +106,42 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
     switch (_selectedMethod) {
       case 'pro_contra':
         return _ProContraMethod(
-          onSave: _saveDecision,
+          onSave: ({
+            required method,
+            required topic,
+            required result,
+            required details,
+          }) => _saveDecision(method: method, topic: topic, result: result, details: details),
           onBack: () => setState(() => _selectedMethod = null),
         );
       case 'five_hat':
         return _FiveHatMethod(
-          onSave: _saveDecision,
+          onSave: ({
+            required method,
+            required topic,
+            required result,
+            required details,
+          }) => _saveDecision(method: method, topic: topic, result: result, details: details),
           onBack: () => setState(() => _selectedMethod = null),
         );
       case 'matrix':
         return _MatrixMethod(
-          onSave: _saveDecision,
+          onSave: ({
+            required method,
+            required topic,
+            required result,
+            required details,
+          }) => _saveDecision(method: method, topic: topic, result: result, details: details),
           onBack: () => setState(() => _selectedMethod = null),
         );
       case 'decision_tree':
         return _DecisionTreeMethod(
-          onSave: _saveDecision,
+          onSave: ({
+            required method,
+            required topic,
+            required result,
+            required details,
+          }) => _saveDecision(method: method, topic: topic, result: result, details: details),
           onBack: () => setState(() => _selectedMethod = null),
         );
       default:
@@ -109,39 +191,50 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
   }
 
   Widget _buildHistoryTab() {
-    if (_decisions.isEmpty) {
-      return Center(
-        child: Text(
-          'Keine Entscheidungen gespeichert. 📝',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-              ),
-        ),
-      );
-    }
+    return FutureBuilder<List<Decision>>(
+      future: _decisionsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _decisions.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final decision = _decisions[_decisions.length - 1 - index];
-        return _DecisionHistoryTile(
-          decision: decision,
-          onDelete: () => setState(() => _decisions.removeAt(_decisions.length - 1 - index)),
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Fehler beim Laden: ${snapshot.error}',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+            ),
+          );
+        }
+
+        final decisions = snapshot.data ?? [];
+
+        if (decisions.isEmpty) {
+          return Center(
+            child: Text(
+              'Keine Entscheidungen gespeichert. 📝',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: decisions.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final decision = decisions[index];
+            return _DecisionHistoryTile(
+              decision: decision,
+              onDelete: () => _deleteDecision(decision.id),
+            );
+          },
         );
       },
-    );
-  }
-
-  void _saveDecision(_Decision decision) {
-    setState(() {
-      _decisions.add(decision);
-      _selectedMethod = null;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Entscheidung gespeichert! ✓')),
     );
   }
 }
@@ -224,7 +317,12 @@ class _ProContraMethod extends StatefulWidget {
     required this.onBack,
   });
 
-  final void Function(_Decision) onSave;
+  final Future<void> Function({
+    required String method,
+    required String topic,
+    required String result,
+    required Map<String, dynamic> details,
+  }) onSave;
   final VoidCallback onBack;
 
   @override
@@ -254,14 +352,12 @@ class _ProContraMethodState extends State<_ProContraMethod> {
       return;
     }
 
-    final decision = _Decision(
+    widget.onSave(
       method: 'Pro & Kontra',
       topic: _topicController.text.trim(),
       result: 'Pro: ${_pros.length} | Kontra: ${_contras.length}',
       details: {'pros': _pros, 'contras': _contras},
     );
-
-    widget.onSave(decision);
   }
 
   @override
@@ -409,7 +505,12 @@ class _FiveHatMethod extends StatefulWidget {
     required this.onBack,
   });
 
-  final void Function(_Decision) onSave;
+  final Future<void> Function({
+    required String method,
+    required String topic,
+    required String result,
+    required Map<String, dynamic> details,
+  }) onSave;
   final VoidCallback onBack;
 
   @override
@@ -464,14 +565,12 @@ class _FiveHatMethodState extends State<_FiveHatMethod> {
       details[hat] = controller.text;
     });
 
-    final decision = _Decision(
+    widget.onSave(
       method: '6 Denkhüte',
       topic: _topicController.text.trim(),
       result: 'Alle Perspektiven analysiert',
       details: details,
     );
-
-    widget.onSave(decision);
   }
 
   @override
@@ -557,7 +656,12 @@ class _MatrixMethod extends StatefulWidget {
     required this.onBack,
   });
 
-  final void Function(_Decision) onSave;
+  final Future<void> Function({
+    required String method,
+    required String topic,
+    required String result,
+    required Map<String, dynamic> details,
+  }) onSave;
   final VoidCallback onBack;
 
   @override
@@ -639,14 +743,12 @@ class _MatrixMethodState extends State<_MatrixMethod> {
       }
     }
 
-    final decision = _Decision(
+    widget.onSave(
       method: 'Entscheidungsmatrix',
       topic: _topicController.text.trim(),
       result: 'Beste Option: $bestOption (Punkte: $bestScore)',
       details: {'options': _options, 'criteria': _criteria, 'scores': _scores},
     );
-
-    widget.onSave(decision);
   }
 
   @override
@@ -835,7 +937,12 @@ class _DecisionTreeMethod extends StatefulWidget {
     required this.onBack,
   });
 
-  final void Function(_Decision) onSave;
+  final Future<void> Function({
+    required String method,
+    required String topic,
+    required String result,
+    required Map<String, dynamic> details,
+  }) onSave;
   final VoidCallback onBack;
 
   @override
@@ -913,14 +1020,12 @@ class _DecisionTreeMethodState extends State<_DecisionTreeMethod> {
       return;
     }
 
-    final decision = _Decision(
+    widget.onSave(
       method: 'Entscheidungsbaum',
       topic: _topicController.text.trim(),
       result: 'Entscheidungsbaum mit ${_countNodes(_nodes.first)} Fragen',
       details: {'tree': _serializeTree(_nodes.first)},
     );
-
-    widget.onSave(decision);
   }
 
   int _countNodes(_TreeNode node) {
@@ -1025,7 +1130,7 @@ class _DecisionHistoryTile extends StatefulWidget {
     required this.onDelete,
   });
 
-  final _Decision decision;
+  final Decision decision;
   final VoidCallback onDelete;
 
   @override
@@ -1187,20 +1292,6 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
         return const SizedBox();
     }
   }
-}
-
-class _Decision {
-  final String method;
-  final String topic;
-  final String result;
-  final Map<String, dynamic> details;
-
-  _Decision({
-    required this.method,
-    required this.topic,
-    required this.result,
-    required this.details,
-  });
 }
 
 class _TreeNode {
