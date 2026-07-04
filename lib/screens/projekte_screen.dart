@@ -254,6 +254,49 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
   }
 }
 
+class _InfoBadge extends StatelessWidget {
+  const _InfoBadge({
+    required this.label,
+    required this.value,
+    required this.theme,
+  });
+  final String label;
+  final String value;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            value,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onPrimaryContainer,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SizeChip extends StatelessWidget {
   const _SizeChip(this.size);
   final String size;
@@ -902,175 +945,60 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Row(
+    return Column(
       children: [
-        // Left Panel: Project Info
-        SizedBox(
-          width: 300,
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border(
-                right: BorderSide(
-                  color: theme.colorScheme.outlineVariant,
-                ),
-              ),
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Project Icon & Name
-                  Row(
-                    children: [
-                      Text(
-                        widget.project.icon ?? '📁',
-                        style: const TextStyle(fontSize: 32),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          widget.project.name,
-                          style: theme.textTheme.titleMedium,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+        // Info Bar
+        Container(
+          color: theme.colorScheme.surfaceContainer,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              spacing: 16,
+              children: [
+                if (widget.project.goal != null && widget.project.goal!.isNotEmpty)
+                  _InfoBadge(
+                    label: 'Ziel',
+                    value: widget.project.goal!,
+                    theme: theme,
                   ),
-                  const SizedBox(height: 20),
-
-                  // Goal
-                  if (widget.project.goal != null && widget.project.goal!.isNotEmpty) ...[
-                    Text(
-                      'Ziel',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.project.goal!,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Status
-                  if (widget.project.status != null) ...[
-                    Text(
-                      'Status',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        widget.project.status!,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.onSecondaryContainer,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Size & Priority
-                  if (widget.project.size != null || widget.project.priority != null) ...[
-                    Row(
-                      children: [
-                        if (widget.project.size != null) ...[
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Größe',
-                                  style: theme.textTheme.labelSmall
-                                      ?.copyWith(
-                                    color:
-                                        theme.colorScheme.outline,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  widget.project.size!,
-                                  style:
-                                      theme.textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        if (widget.project.priority != null) ...[
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Priorität',
-                                  style: theme.textTheme.labelSmall
-                                      ?.copyWith(
-                                    color:
-                                        theme.colorScheme.outline,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  switch (widget.project.priority!) {
-                                    'high' => '🔴 Hoch',
-                                    'medium' => '🟡 Mittel',
-                                    'low' => '🟢 Niedrig',
-                                    _ => widget.project.priority!,
-                                  },
-                                  style:
-                                      theme.textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Planned
-                  if (widget.project.plannedYear != null) ...[
-                    Text(
-                      'Geplant',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.outline,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.project.plannedQuarter != null
-                          ? 'Q${widget.project.plannedQuarter} ${widget.project.plannedYear}'
-                          : '${widget.project.plannedYear}',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ],
-                ],
-              ),
+                if (widget.project.status != null)
+                  _InfoBadge(
+                    label: 'Status',
+                    value: widget.project.status!,
+                    theme: theme,
+                  ),
+                if (widget.project.size != null)
+                  _InfoBadge(
+                    label: 'Größe',
+                    value: widget.project.size!,
+                    theme: theme,
+                  ),
+                if (widget.project.priority != null)
+                  _InfoBadge(
+                    label: 'Priorität',
+                    value: switch (widget.project.priority!) {
+                      'high' => '🔴 Hoch',
+                      'medium' => '🟡 Mittel',
+                      'low' => '🟢 Niedrig',
+                      _ => widget.project.priority!,
+                    },
+                    theme: theme,
+                  ),
+                if (widget.project.plannedYear != null)
+                  _InfoBadge(
+                    label: 'Geplant',
+                    value: widget.project.plannedQuarter != null
+                        ? 'Q${widget.project.plannedQuarter} ${widget.project.plannedYear}'
+                        : '${widget.project.plannedYear}',
+                    theme: theme,
+                  ),
+              ],
             ),
           ),
         ),
 
-        // Right Panel: Milestone Tree + Unassigned Tasks
+        // Milestone Tree + Tasks
         Expanded(
           child: Column(
             children: [
