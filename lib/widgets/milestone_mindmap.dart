@@ -39,41 +39,46 @@ class MilestoneMindmapWidget extends StatelessWidget {
     final unassignedTasks = tasks.where((t) => t.milestoneId == null).toList();
     final rootMilestones = _getRootMilestones();
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: 20,
-          children: [
-            // Left: Project with unassigned tasks
-            _buildProjectNode(context, unassignedTasks),
+    return InteractiveViewer(
+      boundaryMargin: const EdgeInsets.all(100),
+      minScale: 0.5,
+      maxScale: 3.0,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 20,
+            children: [
+              // Left: Project with unassigned tasks
+              _buildProjectNode(context, unassignedTasks),
 
-            // Right: Root milestones
-            if (rootMilestones.isNotEmpty)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 16,
-                children: [
-                  for (final milestone in rootMilestones)
-                    _buildMilestoneNode(
-                      context,
-                      milestone,
-                      depth: 0,
-                    ),
-                ],
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: Text(
-                  'Noch keine Milestones.',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.outline),
+              // Right: Root milestones
+              if (rootMilestones.isNotEmpty)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 16,
+                  children: [
+                    for (final milestone in rootMilestones)
+                      _buildMilestoneNode(
+                        context,
+                        milestone,
+                        depth: 0,
+                      ),
+                  ],
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: Text(
+                    'Noch keine Milestones.',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.outline),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
