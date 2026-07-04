@@ -36,30 +36,138 @@ class MilestoneMindmapWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    if (milestones.isEmpty) {
-      return Center(
-        child: Text(
-          'Noch keine Milestones.',
-          style: theme.textTheme.bodySmall
-              ?.copyWith(color: theme.colorScheme.outline),
-        ),
-      );
-    }
-
+    final unassignedTasks = tasks.where((t) => t.milestoneId == null).toList();
     final rootMilestones = _getRootMilestones();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          for (final milestone in rootMilestones)
-            _buildMilestoneNode(
-              context,
-              milestone,
-              depth: 0,
-            ),
+      scrollDirection: Axis.horizontal,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 20,
+          children: [
+            // Left: Project with unassigned tasks
+            _buildProjectNode(context, unassignedTasks),
+
+            // Right: Root milestones
+            if (rootMilestones.isNotEmpty)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 16,
+                children: [
+                  for (final milestone in rootMilestones)
+                    _buildMilestoneNode(
+                      context,
+                      milestone,
+                      depth: 0,
+                    ),
+                ],
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: Text(
+                  'Noch keine Milestones.',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.outline),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProjectNode(BuildContext context, List<Task> unassignedTasks) {
+    final theme = Theme.of(context);
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 280),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.tertiary,
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.shadow.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Projekt',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onTertiaryContainer,
+              ),
+            ),
+            if (unassignedTasks.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                height: 1,
+                color: theme.colorScheme.tertiary.withOpacity(0.2),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Tasks (${unassignedTasks.length})',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onTertiaryContainer
+                      .withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Column(
+                children: [
+                  for (final (i, task) in
+                      unassignedTasks.take(5).indexed)
+                    _TaskChip(
+                      task: task,
+                      onToggle: (v) =>
+                          onTaskToggle(task, v),
+                      onTap: () => onTaskTap(task),
+                      isDone: task.isDone,
+                      theme: theme,
+                    ),
+                  if (unassignedTasks.length > 5)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '+${unassignedTasks.length - 5} mehr',
+                        style: theme.textTheme.labelSmall
+                            ?.copyWith(
+                          color: theme.colorScheme
+                              .onTertiaryContainer
+                              .withOpacity(0.6),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ] else
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Keine Tasks',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onTertiaryContainer
+                        .withOpacity(0.6),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
