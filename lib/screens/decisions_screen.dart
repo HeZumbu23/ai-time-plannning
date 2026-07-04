@@ -1019,7 +1019,7 @@ class _DecisionTreeMethodState extends State<_DecisionTreeMethod> {
   }
 }
 
-class _DecisionHistoryTile extends StatelessWidget {
+class _DecisionHistoryTile extends StatefulWidget {
   const _DecisionHistoryTile({
     required this.decision,
     required this.onDelete,
@@ -1027,6 +1027,13 @@ class _DecisionHistoryTile extends StatelessWidget {
 
   final _Decision decision;
   final VoidCallback onDelete;
+
+  @override
+  State<_DecisionHistoryTile> createState() => _DecisionHistoryTileState();
+}
+
+class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1044,7 +1051,7 @@ class _DecisionHistoryTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        decision.topic,
+                        widget.decision.topic,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -1053,7 +1060,7 @@ class _DecisionHistoryTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        decision.method,
+                        widget.decision.method,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.outline,
                         ),
@@ -1062,8 +1069,13 @@ class _DecisionHistoryTile extends StatelessWidget {
                   ),
                 ),
                 IconButton(
+                  icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
+                  onPressed: () => setState(() => _expanded = !_expanded),
+                  tooltip: _expanded ? 'Zusammenklappen' : 'Erweitern',
+                ),
+                IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: onDelete,
+                  onPressed: widget.onDelete,
                   tooltip: 'Löschen',
                 )
               ],
@@ -1077,14 +1089,102 @@ class _DecisionHistoryTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                decision.result,
+                widget.decision.result,
                 style: theme.textTheme.bodySmall,
               ),
             ),
+            if (_expanded) ...[
+              const SizedBox(height: 16),
+              _buildDetailedView(context, theme),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildDetailedView(BuildContext context, ThemeData theme) {
+    final decision = widget.decision;
+
+    switch (decision.method) {
+      case 'Pro & Kontra':
+        final pros = (decision.details['pros'] as List<dynamic>?)?.cast<String>() ?? [];
+        final contras = (decision.details['contras'] as List<dynamic>?)?.cast<String>() ?? [];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Argumente DAFÜR:',
+              style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ...pros.map((p) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Chip(label: Text(p)),
+            )),
+            const SizedBox(height: 12),
+            Text(
+              'Argumente DAGEGEN:',
+              style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ...contras.map((c) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Chip(label: Text(c)),
+            )),
+          ],
+        );
+      case '6 Denkhüte':
+        final hats = ['white', 'red', 'black', 'yellow', 'green'];
+        final hatLabels = {
+          'white': 'Fakten (Weiß)',
+          'red': 'Emotionen (Rot)',
+          'black': 'Kritik (Schwarz)',
+          'yellow': 'Optimismus (Gelb)',
+          'green': 'Kreativität (Grün)',
+        };
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final hat in hats)
+              if (decision.details[hat] != null && (decision.details[hat] as String).isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hatLabels[hat] ?? hat,
+                        style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        decision.details[hat] as String,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+          ],
+        );
+      case 'Entscheidungsmatrix':
+        final options = (decision.details['options'] as List<dynamic>?)?.cast<String>() ?? [];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Optionen:',
+              style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ...options.map((o) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Chip(label: Text(o)),
+            )),
+          ],
+        );
+      default:
+        return const SizedBox();
   }
 }
 
