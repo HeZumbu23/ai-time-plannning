@@ -85,28 +85,133 @@ class _MilestoneTreeWidgetState extends State<MilestoneTreeWidget> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final unassignedTasks = widget.tasks.where((t) => t.milestoneId == null).toList();
+    final rootMilestones = _getRootMilestones();
+    final hasContent = unassignedTasks.isNotEmpty || rootMilestones.isNotEmpty;
 
-    if (widget.milestones.isEmpty) {
+    if (!hasContent && widget.milestones.isEmpty) {
       return Center(
         child: Text(
-          'Noch keine Milestones.',
+          'Noch keine Milestones oder Tasks.',
           style: theme.textTheme.bodySmall
               ?.copyWith(color: theme.colorScheme.outline),
         ),
       );
     }
 
-    final rootMilestones = _getRootMilestones();
-    return ListView.builder(
-      itemCount: rootMilestones.length,
-      itemBuilder: (context, index) {
-        final milestone = rootMilestones[index];
-        return _buildMilestoneTree(
+    return ListView(
+      children: [
+        if (unassignedTasks.isNotEmpty) ...[
+          _buildProjectTasksSection(context, unassignedTasks),
+          const Divider(),
+        ],
+        ...rootMilestones.map((milestone) => _buildMilestoneTree(
           context,
           milestone,
           depth: 0,
-        );
-      },
+        )),
+      ],
+    );
+  }
+
+  Widget _buildProjectTasksSection(
+    BuildContext context,
+    List<Task> unassignedTasks,
+  ) {
+    final theme = Theme.of(context);
+    final isExpanded = _expandedMilestones['__project__'] ?? true;
+    final tasksToShow = unassignedTasks.take(5).toList();
+    final hasMore = unassignedTasks.length > 5;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => _toggleExpanded('__project__'),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: Row(
+              children: [
+                Icon(
+                  isExpanded ? Icons.expand_more : Icons.chevron_right,
+                  size: 20,
+                  color: theme.colorScheme.onSurface,
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: Checkbox(
+                    value: false,
+                    onChanged: null,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '📋 Projekt (${unassignedTasks.length} ${unassignedTasks.length == 1 ? 'Task' : 'Tasks'})',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isExpanded) ...[
+          for (final task in tasksToShow)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(52, 4, 12, 4),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Checkbox(
+                      value: task.isDone,
+                      onChanged: (v) =>
+                          widget.onTaskToggle(task, v ?? false),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => widget.onTaskTap(task),
+                      child: Text(
+                        task.title,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          decoration: task.isDone
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: task.isDone
+                              ? theme.colorScheme.outline
+                              : null,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (hasMore)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(52, 4, 12, 4),
+              child: Text(
+                '+${unassignedTasks.length - 5} mehr',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ],
     );
   }
 
