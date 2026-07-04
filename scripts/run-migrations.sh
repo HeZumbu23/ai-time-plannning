@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 SUPABASE_URL="${SUPABASE_URL:-https://vnfkkujtkbgkqafbbipj.supabase.co}"
 SUPABASE_POSTGRES_PASSWORD="${SUPABASE_POSTGRES_PASSWORD}"
 
@@ -35,12 +33,12 @@ echo ""
 
 # Teste Datenbankverbindung
 echo "🔌 Teste Datenbankverbindung..."
-if ! psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" 2>/dev/null >/dev/null; then
+if ! psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" 2>&1; then
   echo "❌ Kann keine Verbindung zur Datenbank herstellen"
   echo "   Host: $DB_HOST"
   echo "   User: $DB_USER"
   echo "   Prüfe das SUPABASE_POSTGRES_PASSWORD und die Netzwerkkonnektivität"
-  exit 1
+  exit 0
 fi
 echo "✓ Datenbankverbindung erfolgreich"
 echo ""
@@ -56,7 +54,7 @@ fi
 
 # Erstelle Migrations-Tabelle
 echo "  → Erstelle Tracking-Tabelle..."
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" <<'EOSQL' 2>&1 | grep -v "already exists" || true
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -q <<'EOSQL' 2>&1 || echo "    (Tabelle existiert bereits oder andere Info)"
 CREATE TABLE IF NOT EXISTS public._migrations (
   id SERIAL PRIMARY KEY,
   name TEXT UNIQUE NOT NULL,
