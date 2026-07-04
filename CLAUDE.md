@@ -31,11 +31,25 @@
 
 ### Umgebungsvariablen erforderlich
 
-Für automatische Migrationen in Docker:
-- `SUPABASE_URL`: z.B. `https://your-project.supabase.co`
-- `SUPABASE_POSTGRES_PASSWORD`: Postgres-Passwort für DB-Zugriff (Service Role)
+Für automatische Migrationen in Docker **MUSST du setzen**:
+```bash
+SUPABASE_POSTGRES_PASSWORD=dein_postgres_passwort
+```
 
-Wenn `SUPABASE_POSTGRES_PASSWORD` nicht gesetzt ist, werden Migrationen übersprungen.
+Wo du das findest:
+1. Gehe zu https://app.supabase.com → Dein Projekt
+2. Settings → Database → Connection Info
+3. Kopiere das **Postgres-Passwort** (oder erstelle eines neu)
+4. Setze es als Umgebungsvariable beim Container-Start:
+   ```bash
+   docker run -e SUPABASE_POSTGRES_PASSWORD="dein_passwort" ...
+   ```
+
+**Wichtig**: Ohne diese Variable werden Migrationen übersprungen!
+
+Optional:
+- `SUPABASE_URL`: Standard ist `https://vnfkkujtkbgkqafbbipj.supabase.co`
+  (Überschreiben nur wenn anderes Projekt)
 
 ### Lokal testen
 
