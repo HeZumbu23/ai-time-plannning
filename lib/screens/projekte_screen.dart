@@ -23,7 +23,11 @@ class ProjekteScreen extends StatefulWidget {
 
 class _ProjekteScreenState extends State<ProjekteScreen> {
   final _service = ProjectService();
+  final _taskService = TaskService();
+  final _milestoneService = MilestoneService();
   List<Project> _projects = [];
+  List<Task> _tasks = [];
+  List<Milestone> _milestones = [];
   bool _loading = true;
   Object? _error;
 
@@ -39,10 +43,16 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
       _error = null;
     });
     try {
-      final projects = await _service.all();
+      final results = await Future.wait([
+        _service.all(),
+        _taskService.backlog(),
+        _milestoneService.all(),
+      ]);
       if (mounted) {
         setState(() {
-          _projects = projects;
+          _projects = results[0] as List<Project>;
+          _tasks = results[1] as List<Task>;
+          _milestones = results[2] as List<Milestone>;
           _loading = false;
         });
       }
@@ -60,6 +70,56 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
           builder: (_) => ProjectDetailScreen(project: project),
         ))
         .then((_) => _load());
+  }
+
+  ({int tasks, int milestones}) _getProjectCounts(Project project) {
+    final tasks = _tasks.where((t) => t.projectId == project.id).length;
+    final milestones = _milestones.where((m) => m.projectId == project.id).length;
+    return (tasks: tasks, milestones: milestones);
+  }
+
+  Widget? _buildProjectSubtitle(Project project) {
+    final counts = _getProjectCounts(project);
+    final hasGoal = project.goal != null && project.goal!.isNotEmpty;
+
+    if (!hasGoal && counts.tasks == 0 && counts.milestones == 0) {
+      return null;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasGoal) ...[
+          Text(
+            project.goal!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 4),
+        ],
+        Wrap(
+          spacing: 8,
+          children: [
+            if (counts.tasks > 0)
+              Text(
+                '📋 ${counts.tasks} ${counts.tasks == 1 ? 'Task' : 'Tasks'}',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+            if (counts.milestones > 0)
+              Text(
+                '🎯 ${counts.milestones} ${counts.milestones == 1 ? 'Milestone' : 'Milestones'}',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
   }
 
   Future<void> _addProject() async {
@@ -196,10 +256,7 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
                               style: const TextStyle(fontSize: 22)),
                         ),
                         title: Text(sorted[i].name),
-                        subtitle: sorted[i].goal != null && sorted[i].goal!.isNotEmpty
-                            ? Text(sorted[i].goal!,
-                                maxLines: 1, overflow: TextOverflow.ellipsis)
-                            : null,
+                        subtitle: _buildProjectSubtitle(sorted[i]),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

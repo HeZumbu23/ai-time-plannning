@@ -1,12 +1,12 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Lokale Einstellungen für den Chat: Anthropic-API-Key + gewähltes Modell.
-/// Der API-Key ist GEHEIM und wird nur auf dem Gerät gespeichert – niemals
-/// im Build/Repo.
+import '../config/supabase_client.dart';
+
+/// Chat-Einstellungen: Anthropic-API-Key (serverseitig gespeichert) + Modell (lokal).
+/// Der API-Key wird mit dem Benutzeraccount verknüpft gespeichert.
 class ChatConfig {
   ChatConfig._();
 
-  static const _kKey = 'anthropic_api_key';
   static const _kModel = 'anthropic_model';
 
   /// Auswählbare Modelle (Label -> Model-ID).
@@ -18,14 +18,35 @@ class ChatConfig {
   static const defaultModel = 'claude-opus-4-8';
 
   static Future<String?> apiKey() async {
-    final p = await SharedPreferences.getInstance();
-    final v = p.getString(_kKey);
-    return (v == null || v.isEmpty) ? null : v;
+    try {
+      final userId = supabaseClient.auth.currentUser?.id;
+      if (userId == null) return null;
+
+      final response = await supabaseClient
+          .from('profile')
+          .select('anthropic_api_key')
+          .eq('id', userId)
+          .maybeSingle();
+
+      final key = response?['anthropic_api_key'] as String?;
+      return (key == null || key.isEmpty) ? null : key;
+    } catch (e) {
+      return null;
+    }
   }
 
   static Future<void> setApiKey(String key) async {
-    final p = await SharedPreferences.getInstance();
-    await p.setString(_kKey, key.trim());
+    try {
+      final userId = supabaseClient.auth.currentUser?.id;
+      if (userId == null) throw Exception('Not authenticated');
+
+      await supabaseClient
+          .from('profile')
+          .update({'anthropic_api_key': key.trim()})
+          .eq('id', userId);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   static Future<String> model() async {
