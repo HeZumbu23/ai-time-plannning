@@ -79,7 +79,7 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
         _MethodCard(
           title: 'Pro & Kontra',
           description: 'Klassische Methode: Sammle Argumente für und gegen eine Option.',
-          icon: Icons.plus_minus,
+          icon: Icons.balance,
           onTap: () => setState(() => _selectedMethod = 'pro_contra'),
         ),
         const SizedBox(height: 16),

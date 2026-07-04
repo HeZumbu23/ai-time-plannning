@@ -77,8 +77,12 @@ class _BacklogScreenState extends State<BacklogScreen> {
       if (_selectedProjects.isNotEmpty) {
         bool inSelectedProject = _selectedProjects.contains(t.projectId);
         if (!inSelectedProject && t.milestoneId != null) {
-          final milestone = data.milestones.firstWhereOrNull((m) => m.id == t.milestoneId);
-          inSelectedProject = milestone != null && _selectedProjects.contains(milestone.projectId);
+          try {
+            final milestone = data.milestones.firstWhere((m) => m.id == t.milestoneId);
+            inSelectedProject = _selectedProjects.contains(milestone.projectId);
+          } catch (e) {
+            // Milestone not found
+          }
         }
         if (!inSelectedProject) return false;
       }
