@@ -72,6 +72,60 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     });
   }
 
+  Future<void> _createNewProject() async {
+    final projectName = await showDialog<String?>(
+      context: context,
+      builder: (ctx) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('Neues Projekt'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Projektname',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (value) => Navigator.of(ctx).pop(value.trim()),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+              child: const Text('Erstellen'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (projectName != null && projectName.isNotEmpty) {
+      try {
+        final projectId = await ProjectService().createProject({
+          'name': projectName,
+          'status': 'active',
+          'icon': '📁',
+        });
+        setState(() {
+          _projectId = projectId;
+          _milestoneId = null;
+          _milestonesFuture = _milestoneService.forProject(projectId);
+          _projectsFuture = ProjectService().all();
+          _markChanged();
+        });
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Fehler beim Erstellen des Projekts: $e')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   void dispose() {
     _title.dispose();
@@ -214,29 +268,41 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             future: _projectsFuture,
             builder: (context, snapshot) {
               final projects = snapshot.data ?? [];
-              return DropdownButtonFormField<String?>(
-                value: _projectId,
-                decoration: const InputDecoration(
-                    labelText: 'Projekt', border: OutlineInputBorder()),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('— Kein Projekt')),
-                  ...projects.map((p) => DropdownMenuItem(
-                        value: p.id,
-                        child: Text(p.name),
-                      )),
+              return Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String?>(
+                      value: _projectId,
+                      decoration: const InputDecoration(
+                          labelText: 'Projekt', border: OutlineInputBorder()),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('— Kein Projekt')),
+                        ...projects.map((p) => DropdownMenuItem(
+                              value: p.id,
+                              child: Text(p.name),
+                            )),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) {
+                          _loadMilestonesForProject(v);
+                        } else {
+                          setState(() {
+                            _projectId = null;
+                            _milestoneId = null;
+                            _milestonesFuture = Future.value([]);
+                            _markChanged();
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: _createNewProject,
+                    tooltip: 'Neues Projekt',
+                  ),
                 ],
-                onChanged: (v) {
-                  if (v != null) {
-                    _loadMilestonesForProject(v);
-                  } else {
-                    setState(() {
-                      _projectId = null;
-                      _milestoneId = null;
-                      _milestonesFuture = Future.value([]);
-                      _markChanged();
-                    });
-                  }
-                },
               );
             },
           ),
