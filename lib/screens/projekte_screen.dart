@@ -97,7 +97,6 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
       for (int i = 0; i < sorted.length; i++) {
         await _service.updatePosition(sorted[i].id, i);
       }
-      await _load();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
