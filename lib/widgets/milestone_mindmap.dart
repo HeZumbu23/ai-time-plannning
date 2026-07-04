@@ -49,23 +49,25 @@ class MilestoneMindmapWidget extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 20,
             children: [
               // Left: Project with unassigned tasks
               _buildProjectNode(context, unassignedTasks),
+              const SizedBox(width: 20),
 
               // Right: Root milestones
               if (rootMilestones.isNotEmpty)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 16,
                   children: [
-                    for (final milestone in rootMilestones)
-                      _buildMilestoneNode(
-                        context,
-                        milestone,
-                        depth: 0,
-                      ),
+                    for (final (i, milestone) in rootMilestones.indexed)
+                      ...[
+                        if (i > 0) const SizedBox(width: 16),
+                        _buildMilestoneNode(
+                          context,
+                          milestone,
+                          depth: 0,
+                        ),
+                      ],
                   ],
                 )
               else
