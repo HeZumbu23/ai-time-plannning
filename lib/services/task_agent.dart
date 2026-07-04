@@ -37,14 +37,14 @@ class TaskAgent {
             'properties': {
               'scope': {
                 'type': 'string',
-                'enum': ['today', 'week', 'backlog', 'all'],
+                'enum': ['today', 'week', 'unplanned', 'all'],
                 'description':
-                    'today = heute geplant, week = aktuelle KW, backlog = ohne Tag, all = alles',
+                    'today = heute geplant, week = aktuelle KW, unplanned = ohne Tag, all = alles',
               },
               'project': {'type': 'string', 'description': 'Projektname (optional)'},
               'status': {
                 'type': 'string',
-                'enum': ['open', 'done', 'backlog', 'blocked'],
+                'enum': ['open', 'done', 'blocked'],
               },
               'text': {'type': 'string', 'description': 'Titel enthält diesen Text'},
               'include_done': {'type': 'boolean'},
@@ -84,7 +84,7 @@ class TaskAgent {
               'title': {'type': 'string'},
               'status': {
                 'type': 'string',
-                'enum': ['open', 'done', 'backlog', 'blocked'],
+                'enum': ['open', 'done', 'blocked'],
               },
               'context': {
                 'type': 'string',
@@ -167,9 +167,9 @@ class TaskAgent {
       q = q.eq('planned_day', _dateOnly(now));
     } else if (scope == 'week') {
       q = q.eq('planned_week', isoWeek(now));
-    } else if (scope == 'backlog') {
+    } else if (scope == 'unplanned') {
       q = q.isFilter('planned_day', null).inFilter(
-          'status', ['open', 'backlog', 'blocked']);
+          'status', ['open', 'blocked']);
     }
 
     if (input['status'] != null) q = q.eq('status', input['status']);
@@ -179,7 +179,7 @@ class TaskAgent {
       q = q.ilike('title', '%${input['text']}%');
     }
     final includeDone = input['include_done'] == true;
-    if (!includeDone && scope != 'backlog') q = q.neq('status', 'done');
+    if (!includeDone && scope != 'unplanned') q = q.neq('status', 'done');
 
     final rows = (await q.limit(60)) as List;
     final idToName = await _projectIdToName();
