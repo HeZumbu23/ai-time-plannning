@@ -39,7 +39,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   late Future<List<Project>> _projectsFuture;
   late Future<List<Milestone>> _milestonesFuture;
 
-  static const _statuses = ['open', 'done', 'backlog', 'blocked'];
+  static const _statuses = ['open', 'done', 'blocked'];
   static const _sizes = ['S', 'M', 'L'];
   static const _contexts = ['büro', 'stadt', 'samstag', 'sonntag', 'flexibel'];
 

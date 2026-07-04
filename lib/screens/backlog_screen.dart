@@ -90,7 +90,7 @@ class _BacklogScreenState extends State<BacklogScreen> {
   }
 
   Widget _buildFilterChips(_BacklogData data) {
-    final allStatuses = {'open', 'backlog', 'done', 'blocked'};
+    final allStatuses = {'open', 'done', 'blocked'};
     final allSizes = {'S', 'M', 'L'};
     final allContexts = {'büro', 'stadt', 'samstag', 'sonntag', 'flexibel'};
 

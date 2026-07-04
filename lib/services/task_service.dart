@@ -54,7 +54,7 @@ class TaskService {
     final rows = await _client
         .from('tasks')
         .select()
-        .inFilter('status', ['open', 'backlog', 'blocked'])
+        .inFilter('status', ['open', 'blocked'])
         .isFilter('planned_day', null)
         .order('next_action', ascending: false)
         .order('created_at', ascending: false);
