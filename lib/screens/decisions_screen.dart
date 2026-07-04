@@ -1185,6 +1185,7 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
         );
       default:
         return const SizedBox();
+    }
   }
 }
 

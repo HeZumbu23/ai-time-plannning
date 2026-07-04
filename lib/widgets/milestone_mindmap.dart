@@ -43,7 +43,6 @@ class MilestoneMindmapWidget extends StatelessWidget {
       boundaryMargin: const EdgeInsets.all(100),
       minScale: 0.5,
       maxScale: 3.0,
-      initialScale: 0.9,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Padding(
