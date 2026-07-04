@@ -635,9 +635,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   : _project.priority,
             );
           });
+          Navigator.of(ctx).pop();
         },
       ),
     );
+    // Trigger parent screen (ProjekteScreen) to reload project list
+    if (mounted) Navigator.of(context).pop(true);
   }
 
   // ── Build ────────────────────────────────────────────────────────────────────
