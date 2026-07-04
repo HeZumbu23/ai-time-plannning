@@ -5,6 +5,7 @@ import 'config/supabase_client.dart';
 import 'screens/api_key_screen.dart';
 import 'screens/backlog_screen.dart';
 import 'screens/chat_screen.dart';
+import 'screens/decisions_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'screens/projekte_screen.dart';
@@ -64,6 +65,12 @@ final appRouter = GoRouter(
           GoRoute(
             path: '/chat',
             builder: (_, __) => const ChatScreen(),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: '/decisions',
+            builder: (_, __) => const DecisionsScreen(),
           ),
         ]),
       ],
