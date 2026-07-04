@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:supabase/supabase.dart';
 
+import '../config/app_version.dart';
 import '../config/supabase_client.dart';
 import '../services/key_storage.dart';
 
@@ -145,124 +146,152 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
 
   Widget _buildConfigured() {
     final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Icon(Icons.check_circle_outline,
-                  size: 64, color: theme.colorScheme.primary),
-              const SizedBox(height: 16),
-              Text(
-                'API-Key konfiguriert',
-                style: theme.textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              FilledButton.icon(
-                icon: const Icon(Icons.qr_code),
-                label: const Text('QR-Code in Container-Logs ausgeben'),
-                onPressed: _printQr,
-              ),
-              if (_qrSent) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'QR-Code wurde in die Container-Logs geschrieben.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
+    return Column(
+      children: [
+        Expanded(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        size: 64, color: theme.colorScheme.primary),
+                    const SizedBox(height: 16),
+                    Text(
+                      'API-Key konfiguriert',
+                      style: theme.textTheme.headlineSmall,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 32),
+                    FilledButton.icon(
+                      icon: const Icon(Icons.qr_code),
+                      label: const Text('QR-Code in Container-Logs ausgeben'),
+                      onPressed: _printQr,
+                    ),
+                    if (_qrSent) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'QR-Code wurde in die Container-Logs geschrieben.',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Key ändern'),
+                      onPressed: () => setState(() => _changingKey = true),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () => context.go('/'),
+                      child: const Text('Zurück zur App'),
+                    ),
+                  ],
                 ),
-              ],
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.edit),
-                label: const Text('Key ändern'),
-                onPressed: () => setState(() => _changingKey = true),
               ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => context.go('/'),
-                child: const Text('Zurück zur App'),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Version $appVersion',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildForm() {
     final theme = Theme.of(context);
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Icon(
-                Icons.vpn_key_outlined,
-                size: 64,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Supabase API-Key',
-                style: theme.textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Gib deinen Supabase Publishable Key ein '
-                'oder scanne den QR-Code aus deinen Projekteinstellungen.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _controller,
-                decoration: InputDecoration(
-                  labelText: 'API-Key (anon / publishable)',
-                  border: const OutlineInputBorder(),
-                  errorText: _error,
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () => _controller.clear(),
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(
+                    Icons.vpn_key_outlined,
+                    size: 64,
+                    color: theme.colorScheme.primary,
                   ),
-                ),
-                minLines: 1,
-                maxLines: 3,
-                onSubmitted: (_) => _save(),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Supabase API-Key',
+                    style: theme.textTheme.headlineSmall,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Gib deinen Supabase Publishable Key ein '
+                    'oder scanne den QR-Code aus deinen Projekteinstellungen.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  TextField(
+                    controller: _controller,
+                    decoration: InputDecoration(
+                      labelText: 'API-Key (anon / publishable)',
+                      border: const OutlineInputBorder(),
+                      errorText: _error,
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => _controller.clear(),
+                      ),
+                    ),
+                    minLines: 1,
+                    maxLines: 3,
+                    onSubmitted: (_) => _save(),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('QR-Code scannen'),
+                    onPressed: _startScan,
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: _saving ? null : _save,
+                    child: _saving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Speichern & verbinden'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('QR-Code scannen'),
-                onPressed: _startScan,
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Speichern & verbinden'),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Version $appVersion',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
