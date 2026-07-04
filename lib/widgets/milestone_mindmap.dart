@@ -132,6 +132,7 @@ class MilestoneMindmapWidget extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final (i, task) in
                       unassignedTasks.take(5).indexed)
@@ -270,6 +271,7 @@ class MilestoneMindmapWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       for (final (i, task) in
                           milestoneTasks.take(3).indexed)
