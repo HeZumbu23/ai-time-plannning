@@ -12,13 +12,24 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  late FocusNode _emailFocusNode;
   bool _loading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailFocusNode = FocusNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _emailFocusNode.requestFocus();
+    });
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocusNode.dispose();
     super.dispose();
   }
 
@@ -60,6 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 32),
                 TextField(
                   controller: _emailController,
+                  focusNode: _emailFocusNode,
                   decoration: const InputDecoration(
                     labelText: 'E-Mail',
                     border: OutlineInputBorder(),
