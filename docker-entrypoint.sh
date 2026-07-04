@@ -13,13 +13,12 @@ fi
 
 # Führe Datenbank-Migrationen aus (falls SUPABASE_POSTGRES_PASSWORD gesetzt)
 if [ -n "$SUPABASE_POSTGRES_PASSWORD" ]; then
-  echo "🔧 Starte Datenbank-Migrationen..."
-  sh /app/scripts/run-migrations.sh
-  if [ $? -ne 0 ]; then
+  sh /app/scripts/run-migrations.sh || {
     echo "⚠️  Migrations-Fehler, aber fahre mit App-Start fort..."
-  fi
+  }
 else
   echo "⚠️  SUPABASE_POSTGRES_PASSWORD nicht gesetzt - Migrationen werden übersprungen"
+  echo "    → Setze die Variable zum automatischen Ausführen von Migrationen"
 fi
 
 exec nginx -g "daemon off;"
