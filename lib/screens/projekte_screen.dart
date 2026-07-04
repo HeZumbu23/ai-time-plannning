@@ -1011,27 +1011,32 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              spacing: 16,
               children: [
-                if (widget.project.goal != null && widget.project.goal!.isNotEmpty)
+                if (widget.project.goal != null && widget.project.goal!.isNotEmpty) ...[
                   _InfoBadge(
                     label: 'Ziel',
                     value: widget.project.goal!,
                     theme: theme,
                   ),
-                if (widget.project.status != null)
+                  const SizedBox(width: 16),
+                ],
+                if (widget.project.status != null) ...[
                   _InfoBadge(
                     label: 'Status',
                     value: widget.project.status!,
                     theme: theme,
                   ),
-                if (widget.project.size != null)
+                  const SizedBox(width: 16),
+                ],
+                if (widget.project.size != null) ...[
                   _InfoBadge(
                     label: 'Größe',
                     value: widget.project.size!,
                     theme: theme,
                   ),
-                if (widget.project.priority != null)
+                  const SizedBox(width: 16),
+                ],
+                if (widget.project.priority != null) ...[
                   _InfoBadge(
                     label: 'Priorität',
                     value: switch (widget.project.priority!) {
@@ -1042,6 +1047,8 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
                     },
                     theme: theme,
                   ),
+                  const SizedBox(width: 16),
+                ],
                 if (widget.project.plannedYear != null)
                   _InfoBadge(
                     label: 'Geplant',
