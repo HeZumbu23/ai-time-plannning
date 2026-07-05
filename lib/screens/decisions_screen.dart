@@ -1453,47 +1453,60 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
   void _showHatsEditDialog(BuildContext context, ThemeData theme, Map<String, String> hats, Map<String, String> hatLabels) {
     final hatsLocal = Map<String, String>.from(hats);
     final hatsOrder = ['white', 'red', 'black', 'yellow', 'green'];
+    final controllers = {
+      for (final hat in hatsOrder)
+        hat: TextEditingController(text: hatsLocal[hat] ?? ''),
+    };
 
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: const Text('Denkhüte bearbeiten'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final hat in hatsOrder)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: TextField(
-                      initialValue: hatsLocal[hat] ?? '',
-                      decoration: InputDecoration(
-                        labelText: hatLabels[hat],
-                        border: const OutlineInputBorder(),
-                      ),
-                      maxLines: 3,
-                      onChanged: (v) => hatsLocal[hat] = v,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Denkhüte bearbeiten'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final hat in hatsOrder)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: TextField(
+                    controller: controllers[hat],
+                    decoration: InputDecoration(
+                      labelText: hatLabels[hat],
+                      border: const OutlineInputBorder(),
                     ),
+                    maxLines: 3,
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Abbrechen'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                _saveChanges(updatedDetails: hatsLocal);
-              },
-              child: const Text('Speichern'),
-            ),
-          ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              for (final entry in controllers.entries) {
+                entry.value.dispose();
+              }
+            },
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final updated = {
+                for (final entry in controllers.entries)
+                  entry.key: entry.value.text,
+              };
+              Navigator.pop(ctx);
+              for (final entry in controllers.entries) {
+                entry.value.dispose();
+              }
+              _saveChanges(updatedDetails: updated);
+            },
+            child: const Text('Speichern'),
+          ),
+        ],
       ),
     );
   }

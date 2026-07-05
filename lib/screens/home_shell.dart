@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../config/app_version.dart';
 import '../config/supabase_client.dart';
 
 /// Haupt-Navigation mit URL-basierter History für den Browser.
@@ -59,7 +60,17 @@ class HomeShell extends StatelessWidget {
     if (navigationShell.currentIndex == 0) return null;
 
     return AppBar(
-      title: Text(_titles[navigationShell.currentIndex]),
+      title: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(_titles[navigationShell.currentIndex]),
+          Text(
+            'v$appVersion',
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ],
+      ),
       actions: [
         if (isSupabaseInitialized)
           IconButton(
