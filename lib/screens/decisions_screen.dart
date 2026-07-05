@@ -706,6 +706,7 @@ class _MatrixMethodState extends State<_MatrixMethod> {
         _initializeScores();
         _optionsController.clear();
       });
+      _autoSave();
     }
   }
 
@@ -1174,6 +1175,34 @@ class _MatrixMethodState extends State<_MatrixMethod> {
             ),
           );
         }),
+        const SizedBox(height: 24),
+        Text(
+          'Neue Option hinzufügen:',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _optionsController,
+                decoration: const InputDecoration(
+                  labelText: 'Option hinzufügen...',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onSubmitted: _addOption,
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: () => _addOption(_optionsController.text),
+              child: const Icon(Icons.add),
+            ),
+          ],
+        ),
         const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
