@@ -678,6 +678,8 @@ class _MatrixMethodState extends State<_MatrixMethod> {
   late Map<String, Map<String, int>> _scores;
   bool _showScoring = false;
   String? _editingCriterion;
+  String? _savedDecisionId;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -755,21 +757,7 @@ class _MatrixMethodState extends State<_MatrixMethod> {
     return total;
   }
 
-  void _save() {
-    if (_topicController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bitte gebe ein Thema ein')),
-      );
-      return;
-    }
-
-    if (_options.isEmpty || _criteria.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mindestens eine Option und ein Kriterium erforderlich')),
-      );
-      return;
-    }
-
+  String _calculateResult() {
     String bestOption = _options.first;
     double bestScore = 0;
 
@@ -781,17 +769,70 @@ class _MatrixMethodState extends State<_MatrixMethod> {
       }
     }
 
-    widget.onSave(
-      method: 'Entscheidungsmatrix',
-      topic: _topicController.text.trim(),
-      result: 'Beste Option: $bestOption (Punkte: ${bestScore.toStringAsFixed(1)})',
-      details: {
-        'options': _options,
-        'criteria': _criteria,
-        'weights': _weights,
-        'scores': _scores,
-      },
-    );
+    return 'Beste Option: $bestOption (Punkte: ${bestScore.toStringAsFixed(1)})';
+  }
+
+  Future<void> _autoSave() async {
+    if (_isSaving || _topicController.text.trim().isEmpty || _options.isEmpty || _criteria.isEmpty) {
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final service = DecisionsService();
+      if (_savedDecisionId == null) {
+        final decision = await service.create(
+          method: 'Entscheidungsmatrix',
+          topic: _topicController.text.trim(),
+          result: _calculateResult(),
+          details: {
+            'options': _options,
+            'criteria': _criteria,
+            'weights': _weights,
+            'scores': _scores,
+          },
+        );
+        setState(() => _savedDecisionId = decision.id);
+      } else {
+        await service.update(
+          _savedDecisionId!,
+          method: 'Entscheidungsmatrix',
+          topic: _topicController.text.trim(),
+          result: _calculateResult(),
+          details: {
+            'options': _options,
+            'criteria': _criteria,
+            'weights': _weights,
+            'scores': _scores,
+          },
+        );
+      }
+      if (mounted) setState(() => _isSaving = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Speichern: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _finalSave() async {
+    await _autoSave();
+    if (_savedDecisionId != null && mounted) {
+      widget.onSave(
+        method: 'Entscheidungsmatrix',
+        topic: _topicController.text.trim(),
+        result: _calculateResult(),
+        details: {
+          'options': _options,
+          'criteria': _criteria,
+          'weights': _weights,
+          'scores': _scores,
+        },
+      );
+    }
   }
 
   @override
@@ -964,6 +1005,7 @@ class _MatrixMethodState extends State<_MatrixMethod> {
             FilledButton(
               onPressed: () {
                 _initializeScores();
+                _autoSave();
                 setState(() => _showScoring = true);
               },
               child: const Text('Zur Bewertung fortfahren'),
@@ -1133,9 +1175,28 @@ class _MatrixMethodState extends State<_MatrixMethod> {
           );
         }),
         const SizedBox(height: 24),
-        FilledButton.tonal(
-          onPressed: _save,
-          child: const Text('Entscheidung speichern'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (_isSaving)
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(Theme.of(context).colorScheme.primary),
+                  ),
+                ),
+              )
+            else
+              const SizedBox(width: 24),
+            FilledButton(
+              onPressed: _finalSave,
+              child: const Text('Fertig'),
+            ),
+          ],
         ),
       ],
     );
