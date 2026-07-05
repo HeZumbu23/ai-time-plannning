@@ -1350,10 +1350,121 @@ class _DecisionHistoryTile extends StatefulWidget {
 
 class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
   bool _expanded = false;
+  bool _isEditing = false;
+  bool _isSaving = false;
+  late TextEditingController _topicController;
+  late TextEditingController _resultController;
+  final _service = DecisionsService();
+
+  @override
+  void initState() {
+    super.initState();
+    _topicController = TextEditingController(text: widget.decision.topic);
+    _resultController = TextEditingController(text: widget.decision.result);
+  }
+
+  @override
+  void dispose() {
+    _topicController.dispose();
+    _resultController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveChanges() async {
+    if (!_isSaving) {
+      setState(() => _isSaving = true);
+      try {
+        await _service.update(
+          widget.decision.id,
+          method: widget.decision.method,
+          topic: _topicController.text.trim(),
+          result: _resultController.text.trim(),
+          details: widget.decision.details,
+        );
+        if (mounted) {
+          setState(() => _isSaving = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gespeichert ✓'), duration: Duration(seconds: 2)),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isSaving = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Fehler: $e')),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    if (_isEditing) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Entscheidung bearbeiten',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _topicController,
+                decoration: const InputDecoration(
+                  labelText: 'Thema',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: null,
+                onChanged: (_) => _saveChanges(),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _resultController,
+                decoration: const InputDecoration(
+                  labelText: 'Ergebnis',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: null,
+                onChanged: (_) => _saveChanges(),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (_isSaving)
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(theme.colorScheme.primary),
+                        ),
+                      ),
+                    )
+                  else
+                    const SizedBox(width: 24),
+                  TextButton(
+                    onPressed: () => setState(() => _isEditing = false),
+                    child: const Text('Fertig'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1383,6 +1494,11 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => setState(() => _isEditing = true),
+                  tooltip: 'Bearbeiten',
                 ),
                 IconButton(
                   icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
