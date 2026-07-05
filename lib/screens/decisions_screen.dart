@@ -1162,15 +1162,27 @@ class _DecisionTreeMethod extends StatefulWidget {
 
 class _DecisionTreeMethodState extends State<_DecisionTreeMethod> {
   final _topicController = TextEditingController();
-  final _questionController = TextEditingController();
   final List<_TreeNode> _nodes = [_TreeNode(id: '0', question: '', yesChild: null, noChild: null)];
   String? _currentNodeId = '0';
+  late TextEditingController _questionController;
+
+  @override
+  void initState() {
+    super.initState();
+    _questionController = TextEditingController();
+    _updateQuestionController();
+  }
 
   @override
   void dispose() {
     _topicController.dispose();
     _questionController.dispose();
     super.dispose();
+  }
+
+  void _updateQuestionController() {
+    final currentNode = _currentNodeId != null ? _findNode(_currentNodeId!) : null;
+    _questionController.text = currentNode?.question ?? '';
   }
 
   _TreeNode? _findNode(String id) {
@@ -1206,7 +1218,10 @@ class _DecisionTreeMethodState extends State<_DecisionTreeMethod> {
         yesChild: null,
         noChild: null,
       );
-      setState(() => _currentNodeId = parent.yesChild!.id);
+      setState(() {
+        _currentNodeId = parent.yesChild!.id;
+        _updateQuestionController();
+      });
     }
   }
 
@@ -1219,7 +1234,10 @@ class _DecisionTreeMethodState extends State<_DecisionTreeMethod> {
         yesChild: null,
         noChild: null,
       );
-      setState(() => _currentNodeId = parent.noChild!.id);
+      setState(() {
+        _currentNodeId = parent.noChild!.id;
+        _updateQuestionController();
+      });
     }
   }
 
@@ -1284,6 +1302,7 @@ class _DecisionTreeMethodState extends State<_DecisionTreeMethod> {
         const SizedBox(height: 24),
         if (currentNode != null) ...[
           TextField(
+            controller: _questionController,
             onChanged: (v) => _setQuestion(currentNode.id, v),
             decoration: const InputDecoration(
               labelText: 'Frage formulieren...',
