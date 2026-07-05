@@ -1389,7 +1389,184 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
     super.dispose();
   }
 
-  Future<void> _saveChanges() async {
+  void _showHatsEditDialog(BuildContext context, ThemeData theme, Map<String, String> hats, Map<String, String> hatLabels) {
+    final hatsLocal = Map<String, String>.from(hats);
+    final hatsOrder = ['white', 'red', 'black', 'yellow', 'green'];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Denkhüte bearbeiten'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final hat in hatsOrder)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: TextField(
+                      initialValue: hatsLocal[hat] ?? '',
+                      decoration: InputDecoration(
+                        labelText: hatLabels[hat],
+                        border: const OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
+                      onChanged: (v) => hatsLocal[hat] = v,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _saveChanges(updatedDetails: hatsLocal);
+              },
+              child: const Text('Speichern'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showProContraEditDialog(BuildContext context, ThemeData theme, List<String> pros, List<String> contras) {
+    final prosLocal = List<String>.from(pros);
+    final contrasLocal = List<String>.from(contras);
+    final proController = TextEditingController();
+    final contraController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Pro & Kontra bearbeiten'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('DAFÜR:', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...prosLocal.asMap().entries.map((e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Chip(
+                    label: Text(e.value),
+                    onDeleted: () => setState(() => prosLocal.removeAt(e.key)),
+                  ),
+                )),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: proController,
+                        decoration: const InputDecoration(
+                          hintText: 'Pro hinzufügen...',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        onSubmitted: (v) {
+                          if (v.trim().isNotEmpty) {
+                            setState(() {
+                              prosLocal.add(v.trim());
+                              proController.clear();
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: () {
+                        if (proController.text.trim().isNotEmpty) {
+                          setState(() {
+                            prosLocal.add(proController.text.trim());
+                            proController.clear();
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text('DAGEGEN:', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...contrasLocal.asMap().entries.map((e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Chip(
+                    label: Text(e.value),
+                    onDeleted: () => setState(() => contrasLocal.removeAt(e.key)),
+                  ),
+                )),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: contraController,
+                        decoration: const InputDecoration(
+                          hintText: 'Kontra hinzufügen...',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        onSubmitted: (v) {
+                          if (v.trim().isNotEmpty) {
+                            setState(() {
+                              contrasLocal.add(v.trim());
+                              contraController.clear();
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: () {
+                        if (contraController.text.trim().isNotEmpty) {
+                          setState(() {
+                            contrasLocal.add(contraController.text.trim());
+                            contraController.clear();
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _saveChanges(
+                  updatedDetails: {
+                    'pros': prosLocal,
+                    'contras': contrasLocal,
+                  },
+                );
+              },
+              child: const Text('Speichern'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveChanges({Map<String, dynamic>? updatedDetails}) async {
     if (!_isSaving) {
       setState(() => _isSaving = true);
       try {
@@ -1398,7 +1575,7 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
           method: widget.decision.method,
           topic: _topicController.text.trim(),
           result: _resultController.text.trim(),
-          details: widget.decision.details,
+          details: updatedDetails ?? widget.decision.details,
         );
         if (mounted) {
           setState(() => _isSaving = false);
@@ -1564,25 +1741,52 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Argumente DAFÜR:',
-              style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Argumente:',
+                  style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('Bearbeiten'),
+                  onPressed: () {
+                    _showProContraEditDialog(context, theme, pros, contras);
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            ...pros.map((p) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Chip(label: Text(p)),
-            )),
+            Text(
+              'DAFÜR:',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.green[700],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 4,
+              children: [
+                ...pros.map((p) => Chip(label: Text(p))),
+              ],
+            ),
             const SizedBox(height: 12),
             Text(
-              'Argumente DAGEGEN:',
-              style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+              'DAGEGEN:',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.red[700],
+              ),
             ),
-            const SizedBox(height: 8),
-            ...contras.map((c) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Chip(label: Text(c)),
-            )),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 4,
+              children: [
+                ...contras.map((c) => Chip(label: Text(c))),
+              ],
+            ),
           ],
         );
       case '6 Denkhüte':
@@ -1597,6 +1801,23 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Denkhüte:',
+                  style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('Bearbeiten'),
+                  onPressed: () {
+                    _showHatsEditDialog(context, theme, decision.details.cast<String, String>(), hatLabels);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             for (final hat in hats)
               if (decision.details[hat] != null && (decision.details[hat] as String).isNotEmpty)
                 Padding(
