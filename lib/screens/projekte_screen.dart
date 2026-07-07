@@ -1067,71 +1067,115 @@ class _ProjectDetailSplitViewState extends State<_ProjectDetailSplitView> {
 
         // Milestone Tree + Tasks
         Expanded(
-          child: Column(
+          child: Row(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: Row(
+              // Left: Milestones
+              Expanded(
+                child: Column(
                   children: [
-                    Text(
-                      'Milestones',
-                      style: theme.textTheme.labelLarge,
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: Icon(
-                        _useMindmap ? Icons.list : Icons.dashboard,
-                        size: 20,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Milestones',
+                            style: theme.textTheme.labelLarge,
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: Icon(
+                              _useMindmap ? Icons.list : Icons.dashboard,
+                              size: 20,
+                            ),
+                            onPressed: () =>
+                                setState(() => _useMindmap = !_useMindmap),
+                            tooltip: _useMindmap
+                                ? 'Zur Liste wechseln'
+                                : 'Zur Mind-Map wechseln',
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add, size: 20),
+                            onPressed: widget.onAddMilestone,
+                            tooltip: 'Milestone hinzufügen',
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
                       ),
-                      onPressed: () =>
-                          setState(() => _useMindmap = !_useMindmap),
-                      tooltip: _useMindmap
-                          ? 'Zur Liste wechseln'
-                          : 'Zur Mind-Map wechseln',
-                      visualDensity: VisualDensity.compact,
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add, size: 20),
-                      onPressed: widget.onAddMilestone,
-                      tooltip: 'Milestone hinzufügen',
-                      visualDensity: VisualDensity.compact,
+                    Expanded(
+                      child: widget.milestones.isEmpty
+                          ? Center(
+                              child: Text(
+                                'Noch keine Milestones.',
+                                style: theme.textTheme.bodySmall
+                                    ?.copyWith(
+                                  color: theme.colorScheme.outline,
+                                ),
+                              ),
+                            )
+                          : _useMindmap
+                              ? MilestoneMindmapWidget(
+                                  milestones: widget.milestones,
+                                  tasks: widget.tasks,
+                                  onMilestoneToggle: widget.onToggleMilestone,
+                                  onTaskToggle: widget.onToggleTask,
+                                  onTaskTap: widget.onTaskTap,
+                                  onMilestoneEdit: widget.onEditMilestone,
+                                  onTaskMilestoneChanged:
+                                      _updateTaskMilestone,
+                                )
+                              : MilestoneTreeWidget(
+                                  milestones: widget.milestones,
+                                  tasks: widget.tasks,
+                                  onMilestoneToggle: widget.onToggleMilestone,
+                                  onTaskToggle: widget.onToggleTask,
+                                  onTaskTap: widget.onTaskTap,
+                                  onMilestoneEdit: widget.onEditMilestone,
+                                  onTaskMilestoneChanged:
+                                      _updateTaskMilestone,
+                                ),
                     ),
                   ],
                 ),
               ),
-              Expanded(
-                child: widget.milestones.isEmpty
-                    ? Center(
+              // Right: Tasks without milestone
+              if (widget.tasks.any((t) => t.milestoneId == null))
+                Container(
+                  width: 1,
+                  color: theme.colorScheme.outlineVariant,
+                ),
+              if (widget.tasks.any((t) => t.milestoneId == null))
+                SizedBox(
+                  width: 300,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                         child: Text(
-                          'Noch keine Milestones.',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(
-                            color: theme.colorScheme.outline,
-                          ),
+                          'Offene Tasks',
+                          style: theme.textTheme.labelLarge,
                         ),
-                      )
-                    : _useMindmap
-                        ? MilestoneMindmapWidget(
-                            milestones: widget.milestones,
-                            tasks: widget.tasks,
-                            onMilestoneToggle: widget.onToggleMilestone,
-                            onTaskToggle: widget.onToggleTask,
-                            onTaskTap: widget.onTaskTap,
-                            onMilestoneEdit: widget.onEditMilestone,
-                            onTaskMilestoneChanged:
-                                _updateTaskMilestone,
-                          )
-                        : MilestoneTreeWidget(
-                            milestones: widget.milestones,
-                            tasks: widget.tasks,
-                            onMilestoneToggle: widget.onToggleMilestone,
-                            onTaskToggle: widget.onToggleTask,
-                            onTaskTap: widget.onTaskTap,
-                            onMilestoneEdit: widget.onEditMilestone,
-                            onTaskMilestoneChanged:
-                                _updateTaskMilestone,
-                          ),
-              ),
+                      ),
+                      Expanded(
+                        child: ListView(
+                          children: [
+                            for (final (i, task) in widget.tasks
+                                .where((t) => t.milestoneId == null)
+                                .indexed)
+                              TaskTile(
+                                task: task,
+                                shaded: i.isOdd,
+                                onTap: () => widget.onTaskTap(task),
+                                onToggleDone: (v) =>
+                                    widget.onToggleTask(task, v),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
