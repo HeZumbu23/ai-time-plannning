@@ -1454,6 +1454,7 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
   bool _expanded = false;
   bool _isEditing = false;
   bool _isSaving = false;
+  bool _isEditingMatrix = false;
   late TextEditingController _topicController;
   late TextEditingController _resultController;
   final _service = DecisionsService();
@@ -1871,9 +1872,34 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
     }
   }
 
+  Widget _buildMatrixEditingInterface(BuildContext context, ThemeData theme) {
+    final options = (widget.decision.details['options'] as List<dynamic>?)?.cast<String>() ?? [];
+    final criteria = (widget.decision.details['criteria'] as List<dynamic>?)?.cast<String>() ?? [];
+    final weightsRaw = widget.decision.details['weights'] as Map<String, dynamic>? ?? {};
+    final weights = weightsRaw.map((k, v) => MapEntry(k, (v as num).toInt()));
+    final scoresRaw = widget.decision.details['scores'] as Map<String, dynamic>? ?? {};
+
+    return _MatrixEditingWidget(
+      topic: _topicController.text,
+      options: options,
+      criteria: criteria,
+      weights: weights,
+      scoresRaw: scoresRaw,
+      onSave: (updatedDetails) async {
+        await _saveChanges(updatedDetails: updatedDetails);
+        setState(() => _isEditingMatrix = false);
+      },
+      onBack: () => setState(() => _isEditingMatrix = false),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    if (_isEditingMatrix && widget.decision.method == 'Entscheidungsmatrix') {
+      return _buildMatrixEditingInterface(context, theme);
+    }
 
     if (_isEditing) {
       return Card(
@@ -1967,11 +1993,6 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
                       ),
                     ],
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => setState(() => _isEditing = true),
-                  tooltip: 'Bearbeiten',
                 ),
                 IconButton(
                   icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
@@ -2136,9 +2157,7 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
                 TextButton.icon(
                   icon: const Icon(Icons.edit, size: 16),
                   label: const Text('Bearbeiten'),
-                  onPressed: () {
-                    _showMatrixEditDialog(context, theme, options, criteria, weights, scoresRaw);
-                  },
+                  onPressed: () => setState(() => _isEditingMatrix = true),
                 ),
               ],
             ),
@@ -2169,6 +2188,425 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
       default:
         return const SizedBox();
     }
+  }
+}
+
+class _MatrixEditingWidget extends StatefulWidget {
+  const _MatrixEditingWidget({
+    required this.topic,
+    required this.options,
+    required this.criteria,
+    required this.weights,
+    required this.scoresRaw,
+    required this.onSave,
+    required this.onBack,
+  });
+
+  final String topic;
+  final List<String> options;
+  final List<String> criteria;
+  final Map<String, int> weights;
+  final Map<String, dynamic> scoresRaw;
+  final Future<void> Function(Map<String, dynamic>) onSave;
+  final VoidCallback onBack;
+
+  @override
+  State<_MatrixEditingWidget> createState() => _MatrixEditingWidgetState();
+}
+
+class _MatrixEditingWidgetState extends State<_MatrixEditingWidget> {
+  late List<String> _options;
+  late List<String> _criteria;
+  late Map<String, int> _weights;
+  late Map<String, Map<String, int>> _scores;
+  late TextEditingController _topicController;
+  late TextEditingController _optionsController;
+  late TextEditingController _criteriaController;
+  bool _showScoring = false;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _topicController = TextEditingController(text: widget.topic);
+    _optionsController = TextEditingController();
+    _criteriaController = TextEditingController();
+    _options = List<String>.from(widget.options);
+    _criteria = List<String>.from(widget.criteria);
+    _weights = Map<String, int>.from(widget.weights);
+    _scores = widget.scoresRaw.map<String, Map<String, int>>((k, v) => MapEntry(k, (v as Map).cast<String, int>()));
+  }
+
+  @override
+  void dispose() {
+    _topicController.dispose();
+    _optionsController.dispose();
+    _criteriaController.dispose();
+    super.dispose();
+  }
+
+  void _addOption(String option) {
+    if (option.trim().isNotEmpty && !_options.contains(option.trim())) {
+      setState(() {
+        _options.add(option.trim());
+        _scores[option.trim()] = {
+          for (final c in _criteria) c: 3,
+        };
+        _optionsController.clear();
+      });
+    }
+  }
+
+  void _addCriterion(String criterion) {
+    if (criterion.trim().isNotEmpty && !_criteria.contains(criterion.trim())) {
+      setState(() {
+        _criteria.add(criterion.trim());
+        _weights[criterion.trim()] = 1;
+        for (final scores in _scores.values) {
+          scores[criterion.trim()] = 3;
+        }
+        _criteriaController.clear();
+      });
+    }
+  }
+
+  double _calculateScore(String option) {
+    double total = 0;
+    for (final criterion in _criteria) {
+      final score = _scores[option]![criterion] ?? 3;
+      final weight = _weights[criterion] ?? 1;
+      total += score * weight;
+    }
+    return total;
+  }
+
+  Future<void> _saveMatrix() async {
+    if (_topicController.text.trim().isEmpty || _options.isEmpty || _criteria.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bitte fülle alle Felder aus')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await widget.onSave({
+        'options': _options,
+        'criteria': _criteria,
+        'weights': _weights,
+        'scores': _scores,
+      });
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gespeichert ✓')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_showScoring) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _topicController,
+                    decoration: const InputDecoration(
+                      labelText: 'Worüber möchtest du entscheiden?',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: widget.onBack,
+                  tooltip: 'Zurück',
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Optionen:',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                ..._options.map((o) => Chip(
+                  label: Text(o),
+                  onDeleted: () => setState(() {
+                    _options.remove(o);
+                    _scores.remove(o);
+                  }),
+                )),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _optionsController,
+                    decoration: const InputDecoration(
+                      labelText: 'Option hinzufügen...',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onSubmitted: _addOption,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () => _addOption(_optionsController.text),
+                  child: const Icon(Icons.add),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Bewertungskriterien:',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ..._criteria.map((criterion) {
+              final weight = _weights[criterion] ?? 1;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Chip(
+                        label: Text('$criterion (${weight}×)'),
+                        onDeleted: () => setState(() {
+                          _criteria.remove(criterion);
+                          _weights.remove(criterion);
+                          for (final scores in _scores.values) {
+                            scores.remove(criterion);
+                          }
+                        }),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 60,
+                      child: DropdownButton<int>(
+                        value: weight,
+                        isExpanded: true,
+                        items: [1, 2, 3, 5, 10]
+                            .map((w) => DropdownMenuItem(value: w, child: Text('$w×')))
+                            .toList(),
+                        onChanged: (w) {
+                          if (w != null) {
+                            setState(() => _weights[criterion] = w);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _criteriaController,
+                    decoration: const InputDecoration(
+                      labelText: 'Kriterium hinzufügen...',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onSubmitted: _addCriterion,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () => _addCriterion(_criteriaController.text),
+                  child: const Icon(Icons.add),
+                ),
+              ],
+            ),
+            if (_options.isNotEmpty && _criteria.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => setState(() => _showScoring = true),
+                child: const Text('Zur Bewertung fortfahren'),
+              ),
+            ]
+          ],
+        ),
+      );
+    }
+
+    final sortedOptions = List<String>.from(_options)..sort((a, b) => _calculateScore(b).compareTo(_calculateScore(a)));
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Bewertung der Optionen:',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.edit),
+                label: const Text('Kriterien ändern'),
+                onPressed: () => setState(() => _showScoring = false),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: [
+                const DataColumn(label: Text('Option')),
+                ..._criteria.map((c) {
+                  final weight = _weights[c] ?? 1;
+                  return DataColumn(
+                    label: SizedBox(
+                      width: 70,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(c, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10)),
+                          Text('Gewicht: $weight', style: const TextStyle(fontSize: 8)),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                const DataColumn(label: Text('Gesamt')),
+              ],
+              rows: _options
+                  .map((option) {
+                    final total = _calculateScore(option);
+                    return DataRow(
+                      cells: [
+                        DataCell(SizedBox(width: 100, child: Text(option))),
+                        ..._criteria.map((criterion) {
+                          final score = _scores[option]![criterion] ?? 3;
+                          return DataCell(
+                            DropdownButton<int>(
+                              value: score,
+                              items: [1, 2, 3, 4, 5]
+                                  .map((v) => DropdownMenuItem(value: v, child: Text(v.toString())))
+                                  .toList(),
+                              onChanged: (v) {
+                                if (v != null) {
+                                  setState(() => _scores[option]![criterion] = v);
+                                }
+                              },
+                            ),
+                          );
+                        }),
+                        DataCell(
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              total.toStringAsFixed(0),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  })
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Ranking:',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          ...sortedOptions.asMap().entries.map((e) {
+            final option = e.value;
+            final score = _calculateScore(option);
+            final rank = e.key + 1;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: rank == 1
+                      ? Colors.green.withOpacity(0.2)
+                      : rank == 2
+                          ? Colors.amber.withOpacity(0.2)
+                          : Theme.of(context).colorScheme.surfaceContainer,
+                  border: Border.all(
+                    color: rank == 1
+                        ? Colors.green
+                        : rank == 2
+                            ? Colors.amber
+                            : Theme.of(context).colorScheme.outline,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('$rank. $option', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(score.toStringAsFixed(1), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline)),
+                  ],
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (_isSaving)
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(Theme.of(context).colorScheme.primary),
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(width: 24),
+              FilledButton(
+                onPressed: _saveMatrix,
+                child: const Text('Speichern'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
