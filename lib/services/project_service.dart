@@ -45,4 +45,8 @@ class ProjectService {
         .single();
     return result['id'] as String;
   }
+
+  Future<void> deleteProject(String id) async {
+    await _client.from('projects').delete().eq('id', id);
+  }
 }
