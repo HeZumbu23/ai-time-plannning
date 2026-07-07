@@ -600,6 +600,74 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     ));
   }
 
+  // ── Project delete ───────────────────────────────────────────────────────────
+
+  Future<void> _deleteProject([List<Task>? tasks]) async {
+    tasks ??= await _taskService.tasksForProject(_project.id);
+    final deleteTasksToo = await showDialog<bool?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Projekt löschen'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Möchtest du das Projekt "${_project.name}" wirklich löschen?'),
+            if (tasks.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Das Projekt hat ${tasks.length} ${tasks.length == 1 ? 'Task' : 'Tasks'}.',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              const Text('Was soll mit den Tasks passieren?'),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Abbrechen'),
+          ),
+          if (tasks.isNotEmpty)
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Tasks behalten, nur Projekt löschen'),
+            ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(tasks.isEmpty
+                ? 'Projekt löschen'
+                : 'Projekt + Tasks löschen'),
+          ),
+        ],
+      ),
+    );
+
+    if (deleteTasksToo == null) return;
+
+    try {
+      if (deleteTasksToo) {
+        for (final task in tasks) {
+          await _taskService.delete(task.id);
+        }
+      }
+      await _projectService.deleteProject(_project.id);
+      if (mounted) {
+        Navigator.of(context).pop(true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Projekt gelöscht')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler: $e')),
+        );
+      }
+    }
+  }
+
   // ── Project edit ─────────────────────────────────────────────────────────────
 
   Future<void> _editProject() async {
@@ -657,6 +725,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             icon: const Icon(Icons.tune),
             tooltip: 'Projekt bearbeiten',
             onPressed: _editProject,
+          ),
+          PopupMenuButton(
+            icon: const Icon(Icons.more_vert),
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                child: const Text('Löschen'),
+                onTap: _deleteProject,
+              ),
+            ],
           ),
         ],
       ),

@@ -8,6 +8,7 @@ on:
 
 jobs:
   build-android:
+    if: false  # Temporarily disabled - APK build not needed right now
     runs-on: ubuntu-latest
     permissions:
       contents: write
