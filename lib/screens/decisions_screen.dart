@@ -821,18 +821,11 @@ class _MatrixMethodState extends State<_MatrixMethod> {
 
   Future<void> _finalSave() async {
     await _autoSave();
-    if (_savedDecisionId != null && mounted) {
-      widget.onSave(
-        method: 'Entscheidungsmatrix',
-        topic: _topicController.text.trim(),
-        result: _calculateResult(),
-        details: {
-          'options': _options,
-          'criteria': _criteria,
-          'weights': _weights,
-          'scores': _scores,
-        },
+    if (mounted && _savedDecisionId != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Entscheidung gespeichert! ✓')),
       );
+      widget.onBack();
     }
   }
 
