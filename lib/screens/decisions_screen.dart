@@ -1669,6 +1669,187 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
     );
   }
 
+  void _showMatrixEditDialog(BuildContext context, ThemeData theme, List<String> options, List<String> criteria, Map<String, int> weights, Map<String, dynamic> scoresRaw) {
+    final optionsLocal = List<String>.from(options);
+    final criteriaLocal = List<String>.from(criteria);
+    final weightsLocal = Map<String, int>.from(weights);
+    final scoresLocal = scoresRaw.map<String, Map<String, int>>((k, v) => MapEntry(k, (v as Map).cast<String, int>()));
+    final optionController = TextEditingController();
+    final criterionController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Matrix bearbeiten'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Optionen:', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...optionsLocal.asMap().entries.map((e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Chip(
+                    label: Text(e.value),
+                    onDeleted: () => setState(() {
+                      optionsLocal.removeAt(e.key);
+                      scoresLocal.remove(e.value);
+                    }),
+                  ),
+                )),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: optionController,
+                        decoration: const InputDecoration(
+                          hintText: 'Option hinzufügen...',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        onSubmitted: (v) {
+                          if (v.trim().isNotEmpty && !optionsLocal.contains(v.trim())) {
+                            setState(() {
+                              optionsLocal.add(v.trim());
+                              scoresLocal[v.trim()] = {
+                                for (final c in criteriaLocal) c: 3,
+                              };
+                              optionController.clear();
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: () {
+                        if (optionController.text.trim().isNotEmpty && !optionsLocal.contains(optionController.text.trim())) {
+                          setState(() {
+                            optionsLocal.add(optionController.text.trim());
+                            scoresLocal[optionController.text.trim()] = {
+                              for (final c in criteriaLocal) c: 3,
+                            };
+                            optionController.clear();
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text('Kriterien:', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...criteriaLocal.asMap().entries.map((e) {
+                  final criterion = e.value;
+                  final weight = weightsLocal[criterion] ?? 1;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Chip(
+                            label: Text('$criterion (${weight}×)'),
+                            onDeleted: () => setState(() {
+                              criteriaLocal.removeAt(e.key);
+                              weightsLocal.remove(criterion);
+                              for (final scores in scoresLocal.values) {
+                                scores.remove(criterion);
+                              }
+                            }),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 60,
+                          child: DropdownButton<int>(
+                            value: weight,
+                            isExpanded: true,
+                            items: [1, 2, 3, 5, 10]
+                                .map((w) => DropdownMenuItem(value: w, child: Text('$w×')))
+                                .toList(),
+                            onChanged: (w) {
+                              if (w != null) {
+                                setState(() => weightsLocal[criterion] = w);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: criterionController,
+                        decoration: const InputDecoration(
+                          hintText: 'Kriterium hinzufügen...',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        onSubmitted: (v) {
+                          if (v.trim().isNotEmpty && !criteriaLocal.contains(v.trim())) {
+                            setState(() {
+                              criteriaLocal.add(v.trim());
+                              weightsLocal[v.trim()] = 1;
+                              for (final scores in scoresLocal.values) {
+                                scores[v.trim()] = 3;
+                              }
+                              criterionController.clear();
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: () {
+                        if (criterionController.text.trim().isNotEmpty && !criteriaLocal.contains(criterionController.text.trim())) {
+                          setState(() {
+                            criteriaLocal.add(criterionController.text.trim());
+                            weightsLocal[criterionController.text.trim()] = 1;
+                            for (final scores in scoresLocal.values) {
+                              scores[criterionController.text.trim()] = 3;
+                            }
+                            criterionController.clear();
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _saveChanges(
+                  updatedDetails: {
+                    'options': optionsLocal,
+                    'criteria': criteriaLocal,
+                    'weights': weightsLocal,
+                    'scores': scoresLocal,
+                  },
+                );
+              },
+              child: const Text('Speichern'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveChanges({Map<String, dynamic>? updatedDetails}) async {
     if (!_isSaving) {
       setState(() => _isSaving = true);
@@ -1952,9 +2133,21 @@ class _DecisionHistoryTileState extends State<_DecisionHistoryTile> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Optionen:',
-              style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Optionen:',
+                  style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('Bearbeiten'),
+                  onPressed: () {
+                    _showMatrixEditDialog(context, theme, options, criteria, weights, scoresRaw);
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Wrap(
