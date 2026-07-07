@@ -1347,11 +1347,11 @@ class _ProjectEditSheetState extends State<_ProjectEditSheet> {
     super.initState();
     final p = widget.project;
     _goal = TextEditingController(text: p.goal ?? '');
-    _status = p.status;
-    _size = p.size;
-    _priority = p.priority;
+    _status = _statuses.contains(p.status) ? p.status : null;
+    _size = _sizes.contains(p.size) ? p.size : null;
+    _priority = ['high', 'medium', 'low'].contains(p.priority) ? p.priority : null;
     _plannedYear = p.plannedYear;
-    _plannedQuarter = p.plannedQuarter;
+    _plannedQuarter = _quarters.contains(p.plannedQuarter) ? p.plannedQuarter : null;
   }
 
   @override
