@@ -604,6 +604,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   Future<void> _deleteProject([List<Task>? tasks]) async {
     tasks ??= await _taskService.tasksForProject(_project.id);
+    final taskList = tasks!;
     final deleteTasksToo = await showDialog<bool?>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -613,10 +614,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Möchtest du das Projekt "${_project.name}" wirklich löschen?'),
-            if (tasks.isNotEmpty) ...[
+            if (taskList.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
-                'Das Projekt hat ${tasks.length} ${tasks.length == 1 ? 'Task' : 'Tasks'}.',
+                'Das Projekt hat ${taskList.length} ${taskList.length == 1 ? 'Task' : 'Tasks'}.',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 8),
@@ -629,14 +630,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Abbrechen'),
           ),
-          if (tasks.isNotEmpty)
+          if (taskList.isNotEmpty)
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Tasks behalten, nur Projekt löschen'),
             ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(tasks.isEmpty
+            child: Text(taskList.isEmpty
                 ? 'Projekt löschen'
                 : 'Projekt + Tasks löschen'),
           ),
@@ -648,7 +649,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
     try {
       if (deleteTasksToo) {
-        for (final task in tasks) {
+        for (final task in taskList) {
           await _taskService.delete(task.id);
         }
       }
