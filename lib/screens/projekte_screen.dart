@@ -1296,21 +1296,21 @@ class _ProjectDetailMobileView extends StatelessWidget {
           onTap: onEditMilestone,
           onToggle: onToggleMilestone,
         ),
-        if (tasks.isNotEmpty) ...[
+        if (tasks != null && tasks.isNotEmpty) ...[
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Text('Tasks',
                 style: Theme.of(context).textTheme.labelLarge),
           ),
-          for (final (i, task) in tasks.indexed)
+          for (final (i, task) in tasks!.indexed)
             TaskTile(
               task: task,
               shaded: i.isOdd,
               onTap: () => onTaskTap(task),
               onToggleDone: (v) => onToggleTask(task, v),
             ),
-        ] else if (milestones.isEmpty)
+        ] else if ((tasks == null || tasks.isEmpty) && milestones.isEmpty)
           const EmptyView(
               message: 'Noch keine Tasks oder Milestones.'),
       ],
