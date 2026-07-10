@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase/supabase.dart';
-import 'package:webview_flutter_web/webview_flutter_web.dart';
 
 import 'config/supabase_client.dart';
 import 'router.dart';
@@ -13,15 +11,6 @@ const _supabaseUrl = 'https://vnfkkujtkbgkqafbbipj.supabase.co';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize WebView platform for web
-  if (kIsWeb) {
-    try {
-      await webviewFlutterWebPluginLibraryUnsafelyInitialize();
-    } catch (_) {
-      // Platform implementation already initialized
-    }
-  }
 
   // Web/Docker: compile-time key (replaced by sed at container start).
   var key = const String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');

@@ -192,8 +192,8 @@ class _JournalScreenState extends State<JournalScreen> {
           FloatingActionButton.small(
             heroTag: 'event',
             onPressed: () => _addEntry(BulletType.event),
-            tooltip: 'Event (—)',
-            child: const Text('—'),
+            tooltip: 'Event (●)',
+            child: const Text('●'),
           ),
           const SizedBox(height: 12),
           FloatingActionButton.extended(
