@@ -7,6 +7,7 @@ import 'screens/backlog_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/decisions_screen.dart';
 import 'screens/home_shell.dart';
+import 'screens/journal_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/projekte_screen.dart';
 import 'screens/quartalplan_screen.dart';
@@ -73,6 +74,12 @@ final appRouter = GoRouter(
           GoRoute(
             path: '/decisions',
             builder: (_, __) => const DecisionsScreen(),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: '/journal',
+            builder: (_, __) => const JournalScreen(),
           ),
         ]),
       ],
