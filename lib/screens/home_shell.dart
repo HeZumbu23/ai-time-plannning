@@ -18,6 +18,7 @@ class HomeShell extends StatelessWidget {
     'Projekte',
     'Chat',
     'Entscheidungen',
+    'Journal',
   ];
 
   static const _destinations = [
@@ -45,6 +46,10 @@ class HomeShell extends StatelessWidget {
         icon: Icon(Icons.lightbulb_outlined),
         selectedIcon: Icon(Icons.lightbulb),
         label: 'Entscheidungen'),
+    NavigationDestination(
+        icon: Icon(Icons.book_outlined),
+        selectedIcon: Icon(Icons.book),
+        label: 'Journal'),
   ];
 
   void _onSelect(int index) {
