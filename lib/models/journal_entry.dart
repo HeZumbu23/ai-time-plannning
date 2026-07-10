@@ -28,7 +28,7 @@ class JournalEntry {
       case BulletType.task:
         return isDone ? '✓' : '•';
       case BulletType.event:
-        return '—';
+        return '●';
       case BulletType.note:
         return '-';
     }
