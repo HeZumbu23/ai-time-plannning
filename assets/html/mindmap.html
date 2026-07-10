@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind Map</title>
+    <script src="https://cdn.jsdelivr.net/npm/mind-map@6/dist/index.umd.js"></script>
+    <style>
+        * { margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        #mindMap { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="mindMap"></div>
+    <script>
+        let mindMap = null;
+
+        function initMindMap(data) {
+            const container = document.getElementById('mindMap');
+            mindMap = new window.MindMap({
+                el: container,
+                data: data,
+                theme: {
+                    primaryTextColor: '#000',
+                    primaryLineColor: '#999',
+                    secondaryTextColor: '#666',
+                    secondaryLineColor: '#ccc'
+                }
+            });
+        }
+
+        // Receive data from Flutter
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (data.type === 'initData') {
+                initMindMap(data.payload);
+            }
+        });
+
+        // Signal readiness to Flutter
+        if (window.flutter_inappwebview) {
+            window.flutter_inappwebview.callHandler('webViewReady');
+        }
+    </script>
+</body>
+</html>
