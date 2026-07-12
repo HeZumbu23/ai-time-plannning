@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
+import 'package:flutter/services.dart';
 
 import '../models/milestone.dart';
 import '../models/task.dart';
@@ -48,7 +49,25 @@ class _MilestoneMindmapWidgetState extends State<MilestoneMindmapWidget> {
         )
         ..loadFlutterAsset('assets/html/mindmap.html');
     } else {
-      _webViewController = null;
+      _webViewController = WebViewController();
+      _loadHtmlOnWeb();
+    }
+  }
+
+  Future<void> _loadHtmlOnWeb() async {
+    try {
+      final htmlContent = await rootBundle.loadString('assets/html/mindmap.html');
+      await _webViewController!.loadRequest(
+        Uri.dataFromString(
+          htmlContent,
+          mimeType: 'text/html',
+          encoding: Encoding.getByName('utf-8'),
+        ),
+      );
+      await Future.delayed(Duration(milliseconds: 500));
+      _sendDataToWebView();
+    } catch (e) {
+      debugPrint('Failed to load mindmap HTML: $e');
     }
   }
 
@@ -133,7 +152,7 @@ class _MilestoneMindmapWidgetState extends State<MilestoneMindmapWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
+    if (_webViewController == null) {
       return _buildWebFallback();
     }
     return WebViewWidget(controller: _webViewController!);
