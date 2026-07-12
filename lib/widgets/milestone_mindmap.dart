@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
@@ -35,8 +36,13 @@ class _MilestoneMindmapWidgetState extends State<MilestoneMindmapWidget> {
   @override
   void initState() {
     super.initState();
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+    _webViewController = WebViewController();
+
+    if (!kIsWeb) {
+      _webViewController.setJavaScriptMode(JavaScriptMode.unrestricted);
+    }
+
+    _webViewController
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (url) {
