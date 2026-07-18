@@ -11,7 +11,8 @@ COPY . .
 RUN flutter create --platforms=web . \
  && flutter pub get \
  && flutter build web --debug --pwa-strategy=none \
-     --dart-define=SUPABASE_PUBLISHABLE_KEY=SUPABASE_KEY_PLACEHOLDER
+     --dart-define=SUPABASE_PUBLISHABLE_KEY=SUPABASE_KEY_PLACEHOLDER \
+     --dart-define=BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # ---- Runtime-Stage: Nginx ----
 FROM nginx:alpine

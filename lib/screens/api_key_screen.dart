@@ -202,7 +202,7 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
         Padding(
           padding: const EdgeInsets.all(16),
           child: Text(
-            'Version $appVersion',
+            'Version $appVersion · Build: $buildTime',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -285,7 +285,7 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
         Padding(
           padding: const EdgeInsets.all(16),
           child: Text(
-            'Version $appVersion',
+            'Version $appVersion · Build: $buildTime',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

@@ -71,7 +71,7 @@ class HomeShell extends StatelessWidget {
         children: [
           Text(_titles[navigationShell.currentIndex]),
           Text(
-            'v$appVersion',
+            'v$appVersion · $buildTime',
             style: Theme.of(context).textTheme.labelSmall,
           ),
         ],
