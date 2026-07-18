@@ -28,6 +28,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   late String _status;
   String? _size;
   String? _context;
+  int? _emotionalUrgency;
   String? _milestoneId;
   late bool _nextAction;
   DateTime? _plannedDay;
@@ -52,6 +53,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     _status = _statuses.contains(t.status) ? t.status : 'open';
     _size = t.size;
     _context = t.context;
+    _emotionalUrgency = t.emotionalUrgency;
     _milestoneId = t.milestoneId;
     _nextAction = t.nextAction;
     _plannedDay = t.plannedDay;
@@ -147,6 +149,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         'status': _status,
         'size': _size,
         'context': _context,
+        'emotional_urgency': _emotionalUrgency,
         'milestone_id': _milestoneId,
         'next_action': _nextAction,
         'planned_day': _plannedDay == null ? null : _fmt(_plannedDay!),
@@ -425,6 +428,25 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<int?>(
+            value: _emotionalUrgency,
+            decoration: const InputDecoration(
+              labelText: 'Emotionales Bedürfnis, den Task zu schließen',
+              helperText: 'Wo will gerade die Energie hinfließen? (1 = niedrig, 3 = hoch)',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(value: null, child: Text('—')),
+              DropdownMenuItem(value: 1, child: Text('1 – niedrig')),
+              DropdownMenuItem(value: 2, child: Text('2 – mittel')),
+              DropdownMenuItem(value: 3, child: Text('3 – hoch')),
+            ],
+            onChanged: (v) {
+              setState(() => _emotionalUrgency = v);
+              _markChanged();
+            },
           ),
           const SizedBox(height: 8),
           SwitchListTile(

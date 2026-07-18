@@ -69,6 +69,13 @@ class TaskAgent {
               'project': {'type': 'string', 'description': 'Projektname'},
               'deadline_date': {'type': 'string', 'description': 'YYYY-MM-DD'},
               'notes': {'type': 'string'},
+              'emotional_urgency': {
+                'type': 'integer',
+                'enum': [1, 2, 3],
+                'description':
+                    'Emotionales Bedürfnis, den Task zu schließen (1 = niedrig, 3 = hoch) – '
+                        'wo will gerade die Energie hinfließen.',
+              },
             },
             'required': ['title'],
           },
@@ -97,6 +104,13 @@ class TaskAgent {
               'deadline_date': {'type': 'string'},
               'notes': {'type': 'string'},
               'project': {'type': 'string', 'description': 'Projektname'},
+              'emotional_urgency': {
+                'type': 'integer',
+                'enum': [1, 2, 3],
+                'description':
+                    'Emotionales Bedürfnis, den Task zu schließen (1 = niedrig, 3 = hoch) – '
+                        'wo will gerade die Energie hinfließen.',
+              },
             },
             'required': ['id'],
           },
@@ -158,7 +172,7 @@ class TaskAgent {
 
   Future<String> _findTasks(Map<String, dynamic> input) async {
     const cols =
-        'id,title,status,context,size,planned_day,planned_week,next_action,deadline_date,project_id';
+        'id,title,status,context,size,planned_day,planned_week,next_action,deadline_date,project_id,emotional_urgency';
     dynamic q = _client.from('tasks').select(cols);
 
     final scope = (input['scope'] as String?) ?? 'all';
@@ -195,7 +209,7 @@ class TaskAgent {
   Future<String> _createTask(Map<String, dynamic> input) async {
     final payload = <String, dynamic>{'title': input['title']};
     for (final k in ['planned_day', 'planned_week', 'context', 'size',
-      'next_action', 'deadline_date', 'notes']) {
+      'next_action', 'deadline_date', 'notes', 'emotional_urgency']) {
       if (input.containsKey(k) && input[k] != null) payload[k] = input[k];
     }
     final pid = await _resolveProject(input['project'] as String?);
@@ -212,7 +226,7 @@ class TaskAgent {
     }
     final patch = <String, dynamic>{};
     for (final k in ['title', 'status', 'context', 'size', 'next_action',
-      'planned_day', 'planned_week', 'deadline_date', 'notes']) {
+      'planned_day', 'planned_week', 'deadline_date', 'notes', 'emotional_urgency']) {
       if (input.containsKey(k)) {
         final v = input[k];
         // Leerer String bei Datums-/Textfeldern = entfernen.

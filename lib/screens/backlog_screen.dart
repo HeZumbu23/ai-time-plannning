@@ -26,6 +26,7 @@ class _BacklogScreenState extends State<BacklogScreen> {
   Set<String> _selectedStatuses = {'open'};
   Set<String?> _selectedSizes = {};
   Set<String?> _selectedContexts = {};
+  Set<int?> _selectedUrgencies = {};
   Set<String?> _selectedProjects = {};
   bool _nextActionOnly = false;
   bool _unplannedOnly = false;
@@ -72,6 +73,7 @@ class _BacklogScreenState extends State<BacklogScreen> {
       if (!_selectedStatuses.contains(t.status)) return false;
       if (_selectedSizes.isNotEmpty && !_selectedSizes.contains(t.size)) return false;
       if (_selectedContexts.isNotEmpty && !_selectedContexts.contains(t.context)) return false;
+      if (_selectedUrgencies.isNotEmpty && !_selectedUrgencies.contains(t.emotionalUrgency)) return false;
 
       // Check project filter: include if task is in selected project OR task's milestone is in selected project
       if (_selectedProjects.isNotEmpty) {
@@ -103,6 +105,8 @@ class _BacklogScreenState extends State<BacklogScreen> {
         case 'size':
           const sizeOrder = {'S': 0, 'M': 1, 'L': 2};
           return (sizeOrder[a.size] ?? 3).compareTo(sizeOrder[b.size] ?? 3);
+        case 'emotional_urgency':
+          return (b.emotionalUrgency ?? 0).compareTo(a.emotionalUrgency ?? 0);
         default:
           return 0;
       }
@@ -115,6 +119,7 @@ class _BacklogScreenState extends State<BacklogScreen> {
     final allStatuses = {'open', 'done', 'blocked'};
     final allSizes = {'S', 'M', 'L'};
     final allContexts = {'büro', 'stadt', 'samstag', 'sonntag', 'flexibel'};
+    const allUrgencies = {1, 2, 3};
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -175,6 +180,21 @@ class _BacklogScreenState extends State<BacklogScreen> {
                       _selectedContexts.add(context);
                     } else {
                       _selectedContexts.remove(context);
+                    }
+                  });
+                },
+                visualDensity: VisualDensity.compact,
+              ),
+            for (final urgency in allUrgencies)
+              FilterChip(
+                label: Text('🔥$urgency'),
+                selected: _selectedUrgencies.contains(urgency),
+                onSelected: (v) {
+                  setState(() {
+                    if (v) {
+                      _selectedUrgencies.add(urgency);
+                    } else {
+                      _selectedUrgencies.remove(urgency);
                     }
                   });
                 },
@@ -290,6 +310,7 @@ class _BacklogScreenState extends State<BacklogScreen> {
               DropdownMenuItem(value: 'title', child: Text('Titel')),
               DropdownMenuItem(value: 'deadline', child: Text('Deadline')),
               DropdownMenuItem(value: 'size', child: Text('Größe')),
+              DropdownMenuItem(value: 'emotional_urgency', child: Text('Energie/Bedürfnis')),
             ],
             onChanged: (v) {
               if (v != null) setState(() => _sortBy = v);
@@ -412,6 +433,23 @@ class _TaskTile extends StatelessWidget {
                       task.context!,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onTertiaryContainer,
+                      ),
+                    ),
+                  ),
+                if (task.emotionalUrgency != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '🔥${task.emotionalUrgency}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onErrorContainer,
                       ),
                     ),
                   ),

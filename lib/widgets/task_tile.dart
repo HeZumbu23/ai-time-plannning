@@ -80,6 +80,12 @@ class TaskTile extends StatelessWidget {
     if (task.context != null) {
       chips.add(_Tag(label: task.context!));
     }
+    if (task.emotionalUrgency != null) {
+      chips.add(_Tag(
+        label: '🔥${task.emotionalUrgency}',
+        color: theme.colorScheme.tertiaryContainer,
+      ));
+    }
     if (task.deadlineDate != null) {
       final d = task.deadlineDate!;
       chips.add(_Tag(
