@@ -504,8 +504,8 @@ class _TaskTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      color: shaded ? theme.colorScheme.surfaceContainer : null,
+    return Material(
+      color: shaded ? theme.colorScheme.surfaceContainer : theme.colorScheme.surface,
       child: ListTile(
         dense: true,
         leading: Checkbox(
