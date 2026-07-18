@@ -17,6 +17,7 @@ class Task {
     this.costType,
     this.labels = const [],
     this.dependsOn,
+    this.emotionalUrgency,
     this.doneAt,
     this.createdAt,
   });
@@ -43,6 +44,10 @@ class Task {
   final String? costType;
   final List<String> labels;
   final int? dependsOn;
+
+  /// Emotionales Bedürfnis, den Task zu schließen (1 = niedrig, 3 = hoch).
+  /// Kriterium dafür, wo gerade die Energie hinfließen will.
+  final int? emotionalUrgency;
   final DateTime? doneAt;
   final DateTime? createdAt;
 
@@ -57,6 +62,7 @@ class Task {
         milestoneId: milestoneId,
         costType: costType, labels: labels,
         dependsOn: dependsOn,
+        emotionalUrgency: emotionalUrgency,
         doneAt: newStatus == 'done' ? DateTime.now() : null,
         createdAt: createdAt,
       );
@@ -85,6 +91,7 @@ class Task {
       labels: (map['labels'] as List?)?.map((e) => e.toString()).toList() ??
           const [],
       dependsOn: map['depends_on'] as int?,
+      emotionalUrgency: map['emotional_urgency'] as int?,
       doneAt: _parseDate(map['done_at']),
       createdAt: _parseDate(map['created_at']),
     );
